@@ -1,9 +1,11 @@
-const { webkit } = require("@playwright/test");
+const { webkit, chromium } = require("@playwright/test");
 const AxeBuilder = require("@axe-core/playwright").default;
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 (async () => {
-  const browser = await webkit.launch();
+  const browser = await (
+    process.env.BROWSER_ENGINE === "chromium" ? chromium : webkit
+  ).launch();
   const passed = [];
   try {
     const context = await browser.newContext({

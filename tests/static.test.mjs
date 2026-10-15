@@ -10,11 +10,9 @@ const walk = (root) =>
 test("original sample content and recording are present", () => {
   assert.equal(books.length, 2);
   assert.equal(books[0].chapters[0].paragraphs[0], excerpt);
-  const wav = readFileSync("dist/assets/signal-room.wav");
-  assert.equal(wav.toString("ascii", 0, 4), "RIFF");
-  assert.equal(wav.readUInt32LE(24), 22050);
-  assert(wav.length > 100000 && wav.length < 1500000);
-  assert.equal(wav.readUInt32LE(40), wav.length - 44);
+  const mp3 = readFileSync("dist/assets/signal-room.mp3");
+  assert.equal(mp3.toString("ascii", 0, 3), "ID3");
+  assert(mp3.length > 100000 && mp3.length < 300000);
 });
 test("source and exact static build contain no private endpoints or credentials", () => {
   for (const p of [...walk("public"), ...walk("dist")]) {

@@ -285,8 +285,13 @@ async function run(engine, name) {
   }
 }
 (async () => {
-  await run(webkit, "webkit");
-  if (!process.env.WEBKIT_ONLY) await run(chromium, "chromium");
+  if (!process.env.BROWSER_ENGINE || process.env.BROWSER_ENGINE === "webkit")
+    await run(webkit, "webkit");
+  if (
+    !process.env.WEBKIT_ONLY &&
+    (!process.env.BROWSER_ENGINE || process.env.BROWSER_ENGINE === "chromium")
+  )
+    await run(chromium, "chromium");
   assert.deepEqual(errors, []);
   fs.writeFileSync(
     "test-results/browser-results.json",
