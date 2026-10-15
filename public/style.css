@@ -489,6 +489,7 @@ label input {
   display: none;
 }
 #notice {
+  pointer-events: none;
   position: fixed;
   bottom: 12px;
   left: 12px;

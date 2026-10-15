@@ -26,7 +26,32 @@ let current = null,
   words = [],
   wanted = false;
 let audioRestored = false,
-  resetting = false;
+  resetting = false,
+  preparingAudio = null,
+  usesBlob = true,
+  startingAudio = false,
+  playGeneration = 0;
+// Some static hosts ignore byte ranges. A single prebuffered local recording
+// gives native media a complete seekable resource without a backend or stream.
+function prepareAudio() {
+  if (!preparingAudio) {
+    preparingAudio = fetch("/assets/signal-room.mp3", { credentials: "omit" })
+      .then((response) => {
+        if (!response.ok) throw Error("Sample unavailable");
+        return response.arrayBuffer();
+      })
+      .then((bytes) => {
+        audio.src = URL.createObjectURL(
+          new Blob([bytes], { type: "audio/mpeg" }),
+        );
+      })
+      .catch((error) => {
+        preparingAudio = null;
+        throw error;
+      });
+  }
+  return preparingAudio;
+}
 const save = () => {
   if (resetting) return;
   try {
@@ -198,6 +223,7 @@ function openBook(id, selectedChapter) {
   document.body.classList.add("reading");
   renderChapter(selectedChapter === undefined ? Number(pos?.anchor) || 0 : 0);
   $("reading-area").focus();
+  prepareAudio().catch(() => {});
 }
 function move(direction) {
   if (
@@ -229,20 +255,44 @@ function syncAudio() {
   $("audio-excerpt").classList.toggle("active", playing);
 }
 function stopListening() {
+  playGeneration++;
+  startingAudio = false;
   wanted = false;
   audio.pause();
   syncAudio();
 }
 async function playSample() {
+  const request = ++playGeneration;
+  startingAudio = true;
   wanted = true;
   try {
+    await prepareAudio();
+    if (!wanted || request !== playGeneration) return;
     if (audio.ended) audio.currentTime = 0;
-    await audio.play();
+    try {
+      await audio.play();
+    } catch (error) {
+      // Some native media ports reject Blob URLs but support the same static file.
+      if (
+        !usesBlob ||
+        audio.error?.code !== 4 ||
+        request !== playGeneration ||
+        !wanted
+      )
+        throw error;
+      usesBlob = false;
+      audio.src = "/assets/signal-room.mp3";
+      await audio.play();
+    }
+    if (request !== playGeneration) return;
     if (!wanted) audio.pause();
     else $("notice").textContent = "";
   } catch {
+    if (request !== playGeneration) return;
     wanted = false;
     notify("Sample audio could not play. Please try Play again.");
+  } finally {
+    if (request === playGeneration) startingAudio = false;
   }
   syncAudio();
 }
@@ -257,6 +307,7 @@ function format(seconds) {
   return `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
 }
 audio.addEventListener("loadedmetadata", () => {
+  audio.playbackRate = state.speed;
   if (!audioRestored) {
     audioRestored = true;
     audio.currentTime = Math.max(
@@ -272,12 +323,13 @@ for (const event of ["playing", "pause", "ended"])
     syncAudio();
   });
 audio.addEventListener("error", () => {
-  if (wanted) {
+  if (wanted && !startingAudio) {
     stopListening();
     notify("The bundled recording is unavailable. Reading remains available.");
   }
 });
 audio.addEventListener("timeupdate", () => {
+  if (!audioRestored) return;
   state.audio = audio.currentTime;
   save();
   $("seek").value = Number.isFinite(audio.duration)

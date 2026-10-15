@@ -231,12 +231,11 @@ async function run(engine, name) {
         await p.locator("#listen").click();
         await p.waitForTimeout(100);
         assert(
-          await p
-            .locator("audio")
-            .evaluate(
-              (a, pos) => a.currentTime >= pos && a.currentTime < pos + 2,
-              pos,
-            ),
+          await p.locator("audio").evaluate(
+            // Native MP3 decoders can quantize the resume clock by a frame.
+            (a, pos) => a.currentTime >= pos - 0.08 && a.currentTime < pos + 2,
+            pos,
+          ),
         );
         await p.locator("#listen").click();
         await p.locator("#listen").click();

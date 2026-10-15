@@ -6,7 +6,7 @@ A standalone demonstration of [Webnovel Reader](https://parampathak.com/projects
 
 Static HTML, CSS, and JavaScript, served by Cloudflare Pages. Two original stories and original SVG covers are bundled with the source. Reading positions, preferences, and a separate sample-listening cursor live only in this site's browser storage. Reset removes only this demo's storage key.
 
-There is no backend, database, account system, live scraper, analytics, speech-service request, or dependency on the private reader. The importer is explicitly a bundled workflow preview. `connect-src 'none'` blocks fetch, XHR, and WebSocket connections; scripts, images, and media are same-origin. No Pages Functions, Workers, or tunnels are used. Security controls reduce exposure; they are not an absolute-security claim.
+There is no backend, database, account system, live scraper, application analytics, speech-service request, or dependency on the private reader. The importer is explicitly a bundled workflow preview. CSP allows connections only to this static site's own origin: one fixed MP3 asset is fetched without credentials and prebuffered into a local Blob for reliable seeking on hosts without byte-range support. Media is limited to same-origin assets and local blobs; other origins remain blocked. No Pages Functions, Workers, or tunnels are used. Provider-level security reporting on a custom domain is a separate hosting configuration and is not an application dependency. These controls are not an absolute-security claim.
 
 ## Try it locally
 

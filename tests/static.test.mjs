@@ -32,11 +32,13 @@ test("source and exact static build contain no private endpoints or credentials"
       assert(!pattern.test(text), p);
   }
   const app = readFileSync("dist/app.js", "utf8");
-  assert(!/\b(fetch|XMLHttpRequest|WebSocket|EventSource)\s*\(/.test(app));
+  assert(!/\b(XMLHttpRequest|WebSocket|EventSource)\s*\(/.test(app));
+  assert.equal((app.match(/\bfetch\s*\(/g) || []).length, 1);
+  assert.match(app, /fetch\(["']\/assets\/signal-room\.mp3["']/);
   const headers = readFileSync("dist/_headers", "utf8");
   for (const policy of [
-    "connect-src 'none'",
-    "media-src 'self'",
+    "connect-src 'self'",
+    "media-src 'self' blob:",
     "frame-src 'none'",
     "script-src 'self'",
     "frame-ancestors 'none'",

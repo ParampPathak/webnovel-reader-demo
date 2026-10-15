@@ -33,8 +33,8 @@ for (const file of files) {
   if (pathname === "/") {
     receipt.csp = response.headers.get("content-security-policy");
     receipt.server = response.headers.get("server");
-    assert(receipt.csp.includes("connect-src 'none'"));
-    assert(receipt.csp.includes("media-src 'self'"));
+    assert(receipt.csp.includes("connect-src 'self'"));
+    assert(receipt.csp.includes("media-src 'self' blob:"));
     assert(response.headers.get("cache-control").includes("no-transform"));
   }
 }
