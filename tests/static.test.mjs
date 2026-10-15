@@ -64,6 +64,6 @@ test("navigation, local state, and sample-only importer stay explicit", () => {
   assert(html.includes("No URL entry"));
   assert(html.includes("not individual words"));
   const app = readFileSync("dist/app.js", "utf8");
-  assert(app.includes("key='reader-demo-v1'"));
+  assert.match(app, /key\s*=\s*["']reader-demo-v1["']/);
   assert(!app.includes("localStorage.clear"));
 });
