@@ -1,48 +1,240 @@
 <!doctype html>
 <html lang="en" data-theme="black">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>Webnovel Reader · Interactive demo</title>
-  <meta name="description" content="Explore Webnovel Reader: an independent static demonstration of reading, appearance, local progress, and sample narration.">
-  <meta name="theme-color" content="#10151b">
-  <link rel="canonical" href="https://reader.parampathak.com/">
-  <meta property="og:title" content="Webnovel Reader · Read. Listen. Pick up where you left off.">
-  <meta property="og:description" content="A self-contained interactive product demo by Param Pathak. Original stories, static audio, no account required.">
-  <meta property="og:url" content="https://reader.parampathak.com/">
-  <link rel="icon" href="/assets/mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/style.css">
-  <script type="module" src="/app.js"></script>
-</head>
-<body>
-  <a href="#main" class="skip">Skip to content</a>
-  <header class="site-header">
-    <a class="brand" href="#library"><img src="/assets/mark.svg" width="32" height="32" alt=""> Webnovel <strong>Reader</strong></a>
-    <nav aria-label="Primary"><button id="import-open">Importer preview</button><a href="https://parampathak.com/projects/webnovel-reader/">Case study ↗</a></nav>
-  </header>
-  <main id="main" tabindex="-1">
-    <section id="library" aria-labelledby="library-heading">
-      <div class="intro"><p class="eyebrow">YOUR NEXT CHAPTER</p><h1 id="library-heading">Read. Listen.<br><em>Stay in the story.</em></h1><p>A quiet place for good stories. Explore this independent, interactive demonstration of Webnovel Reader.</p><div class="intro-meta"><span>Original sample stories</span><span>No account needed</span><span>Progress stays on this device</span></div></div>
-      <div class="section-title"><h2>Your library</h2><button id="reset-open">Reset demo</button></div>
-      <div class="book-grid" id="books"></div>
-      <aside class="demo-note"><strong>A product demo, not the private application.</strong><p>Reading and preferences work locally. Narration is a short, bundled synthetic recording. The importer uses sample data, never live websites. No accounts, analytics, or private-server connections.</p></aside>
-    </section>
-    <section id="reader" hidden aria-labelledby="reader-title">
-      <div class="reader-header"><button id="library-back">← Library</button><div><h1 id="reader-title"></h1><p id="chapter-title"></p></div><button id="appearance-open" aria-label="Reading appearance">Aa</button></div>
-      <div id="reading-area" tabindex="0" aria-label="Book text. Swipe or use arrow keys to turn pages."><article id="passage"></article></div>
-      <div class="reader-status"><button id="previous" aria-label="Previous page">←</button><output id="page-status" aria-live="polite"></output><button id="next" aria-label="Next page">→</button></div>
-      <nav class="reader-toolbar" aria-label="Reader controls"><button id="contents-open">☷ <span>Contents</span></button><button id="theme-cycle">◐ <span>Theme</span></button><button id="listen" aria-pressed="false">♫ <span>Listen</span></button><button id="audio-open">◷ <span>Audio sample</span></button></nav>
-    </section>
-  </main>
-  <footer class="site-footer">Built by <a href="https://parampathak.com">Param Pathak</a><span>Standalone static demo · <a href="https://github.com/ParampPathak/webnovel-reader-demo">Source</a></span></footer>
-  <div id="mini" hidden><button id="mini-title">Sample narration ↗</button><button id="rewind" aria-label="Back 15 seconds">−15</button><button id="play" aria-label="Play sample">▶</button><button id="forward" aria-label="Forward 15 seconds">+15</button><button id="stop" aria-label="Stop listening">×</button></div>
-  <audio id="audio" preload="none" src="/assets/signal-room.wav"></audio>
-  <dialog id="appearance"><div class="dialog-heading"><h2>Reading appearance</h2><button data-close aria-label="Close appearance">×</button></div><label>Theme<select id="theme"><option value="black">Near black</option><option value="gray">Dark gray</option><option value="light">Light gray</option></select></label><label>Text size <output id="font-value"></output><input id="font" type="range" min="16" max="30" step="1" value="21"></label><label>Line spacing<select id="spacing"><option value="1.6">Comfortable</option><option value="1.85">Roomy</option><option value="2">Spacious</option></select></label><p>Saved on this device. Reflow retains your current passage.</p></dialog>
-  <dialog id="contents"><div class="dialog-heading"><h2>Contents</h2><button data-close aria-label="Close contents">×</button></div><p id="contents-book"></p><div id="chapter-list"></div></dialog>
-  <dialog id="audio-dialog"><div class="dialog-heading"><h2>Read aloud</h2><button data-close aria-label="Close audio controls">×</button></div><p class="eyebrow">THE SIGNAL ROOM · OPENING EXCERPT</p><p>Offline synthetic narration, generated with eSpeak NG. This short recording demonstrates controls, not the production Andrew Neural voice.</p><button id="expanded-play">Play sample</button><label>Sample position<input id="seek" type="range" min="0" max="100" value="0" step="0.1"></label><output id="audio-time">0:00 / —</output><label>Playback speed<select id="speed"><option value="1">1×</option><option value="1.5">1.5×</option><option value="2">2×</option></select></label><p>Highlight follows the recorded excerpt as a whole, not individual words. Reading progress and the sample’s listening position are saved separately.</p><blockquote id="audio-excerpt"></blockquote></dialog>
-  <dialog id="importer"><div class="dialog-heading"><h2>Chapter importer</h2><button data-close aria-label="Close importer">×</button></div><p class="eyebrow">BUNDLED WORKFLOW PREVIEW · NO LIVE FETCHING</p><div class="import-book"><img src="/assets/signal.svg" width="90" height="135" alt="Original cover of The Signal Room"><div><h3>The Signal Room</h3><p>Webnovel Reader · Original demo fiction</p><p>Source: bundled demonstration catalog</p></div></div><button id="discover">Discover sample chapters</button><p id="discovery-status" role="status">Ready to explore the sample catalog.</p><div id="import-chapters" hidden></div><button id="import-selected" hidden>Open selected sample chapter</button><p>No URL entry, scraping, download, or server import occurs here.</p></dialog>
-  <dialog id="reset"><h2>Reset this demo?</h2><p>Clear this demo’s reading positions, listening position, and preferences on this device. Other sites and browser data are untouched.</p><button id="reset-confirm">Reset demo data</button><button data-close>Cancel</button></dialog>
-  <p id="notice" role="status"></p>
-  <noscript><p class="demo-note">JavaScript is required for interactive reading. This demo has no account system or backend. <a href="https://parampathak.com/projects/webnovel-reader/">Read the case study instead.</a></p></noscript>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <title>Webnovel Reader · Interactive demo</title>
+    <meta
+      name="description"
+      content="Explore Webnovel Reader: an independent static demonstration of reading, appearance, local progress, and sample narration."
+    />
+    <meta name="theme-color" content="#10151b" />
+    <link rel="canonical" href="https://reader.parampathak.com/" />
+    <meta
+      property="og:title"
+      content="Webnovel Reader · Read. Listen. Pick up where you left off."
+    />
+    <meta
+      property="og:description"
+      content="A self-contained interactive product demo by Param Pathak. Original stories, static audio, no account required."
+    />
+    <meta property="og:url" content="https://reader.parampathak.com/" />
+    <link rel="icon" href="/assets/mark.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/style.css" />
+    <script type="module" src="/app.js"></script>
+  </head>
+  <body>
+    <a href="#main" class="skip">Skip to content</a>
+    <header class="site-header">
+      <a class="brand" href="#library"
+        ><img src="/assets/mark.svg" width="32" height="32" alt="" /> Webnovel
+        <strong>Reader</strong></a
+      >
+      <nav aria-label="Primary">
+        <button id="import-open">Importer preview</button
+        ><a href="https://parampathak.com/projects/webnovel-reader/"
+          >Case study ↗</a
+        >
+      </nav>
+    </header>
+    <main id="main" tabindex="-1">
+      <section id="library" aria-labelledby="library-heading">
+        <div class="intro">
+          <p class="eyebrow">YOUR NEXT CHAPTER</p>
+          <h1 id="library-heading">
+            Read. Listen.<br /><em>Stay in the story.</em>
+          </h1>
+          <p>
+            A quiet place for good stories. Explore this independent,
+            interactive demonstration of Webnovel Reader.
+          </p>
+          <div class="intro-meta">
+            <span>Original sample stories</span><span>No account needed</span
+            ><span>Progress stays on this device</span>
+          </div>
+        </div>
+        <div class="section-title">
+          <h2>Your library</h2>
+          <button id="reset-open">Reset demo</button>
+        </div>
+        <div class="book-grid" id="books"></div>
+        <aside class="demo-note">
+          <strong>A product demo, not the private application.</strong>
+          <p>
+            Reading and preferences work locally. Narration is a short, bundled
+            synthetic recording. The importer uses sample data, never live
+            websites. No accounts, analytics, or private-server connections.
+          </p>
+        </aside>
+      </section>
+      <section id="reader" hidden aria-labelledby="reader-title">
+        <div class="reader-header">
+          <button id="library-back">← Library</button>
+          <div>
+            <h1 id="reader-title"></h1>
+            <p id="chapter-title"></p>
+          </div>
+          <button id="appearance-open" aria-label="Reading appearance">
+            Aa
+          </button>
+        </div>
+        <div
+          id="reading-area"
+          tabindex="0"
+          aria-label="Book text. Swipe or use arrow keys to turn pages."
+        >
+          <article id="passage"></article>
+        </div>
+        <div class="reader-status">
+          <button id="previous" aria-label="Previous page">←</button
+          ><output id="page-status" aria-live="polite"></output
+          ><button id="next" aria-label="Next page">→</button>
+        </div>
+        <nav class="reader-toolbar" aria-label="Reader controls">
+          <button id="contents-open">☷ <span>Contents</span></button
+          ><button id="theme-cycle">◐ <span>Theme</span></button
+          ><button id="listen" aria-pressed="false">
+            ♫ <span>Listen</span></button
+          ><button id="audio-open">◷ <span>Audio sample</span></button>
+        </nav>
+      </section>
+    </main>
+    <footer class="site-footer">
+      Built by <a href="https://parampathak.com">Param Pathak</a
+      ><span
+        >Standalone static demo ·
+        <a href="https://github.com/ParampPathak/webnovel-reader-demo"
+          >Source</a
+        ></span
+      >
+    </footer>
+    <div id="mini" hidden>
+      <button id="mini-title">Sample narration ↗</button
+      ><button id="rewind" aria-label="Back 15 seconds">−15</button
+      ><button id="play" aria-label="Play sample">▶</button
+      ><button id="forward" aria-label="Forward 15 seconds">+15</button
+      ><button id="stop" aria-label="Stop listening">×</button>
+    </div>
+    <audio id="audio" preload="none" src="/assets/signal-room.wav"></audio>
+    <dialog id="appearance">
+      <div class="dialog-heading">
+        <h2>Reading appearance</h2>
+        <button data-close aria-label="Close appearance">×</button>
+      </div>
+      <label
+        >Theme<select id="theme">
+          <option value="black">Near black</option>
+          <option value="gray">Dark gray</option>
+          <option value="light">Light gray</option>
+        </select></label
+      ><label
+        >Text size <output id="font-value"></output
+        ><input
+          id="font"
+          type="range"
+          min="16"
+          max="30"
+          step="1"
+          value="21" /></label
+      ><label
+        >Line spacing<select id="spacing">
+          <option value="1.6">Comfortable</option>
+          <option value="1.85">Roomy</option>
+          <option value="2">Spacious</option>
+        </select></label
+      >
+      <p>Saved on this device. Reflow retains your current passage.</p>
+    </dialog>
+    <dialog id="contents">
+      <div class="dialog-heading">
+        <h2>Contents</h2>
+        <button data-close aria-label="Close contents">×</button>
+      </div>
+      <p id="contents-book"></p>
+      <div id="chapter-list"></div>
+    </dialog>
+    <dialog id="audio-dialog">
+      <div class="dialog-heading">
+        <h2>Read aloud</h2>
+        <button data-close aria-label="Close audio controls">×</button>
+      </div>
+      <p class="eyebrow">THE SIGNAL ROOM · OPENING EXCERPT</p>
+      <p>
+        Offline synthetic narration, generated with eSpeak NG. This short
+        recording demonstrates controls, not the production Andrew Neural voice.
+      </p>
+      <button id="expanded-play">Play sample</button
+      ><label
+        >Sample position<input
+          id="seek"
+          type="range"
+          min="0"
+          max="100"
+          value="0"
+          step="0.1" /></label
+      ><output id="audio-time">0:00 / —</output
+      ><label
+        >Playback speed<select id="speed">
+          <option value="1">1×</option>
+          <option value="1.5">1.5×</option>
+          <option value="2">2×</option>
+        </select></label
+      >
+      <p>
+        Highlight follows the recorded excerpt as a whole, not individual words.
+        Reading progress and the sample’s listening position are saved
+        separately.
+      </p>
+      <blockquote id="audio-excerpt"></blockquote>
+    </dialog>
+    <dialog id="importer">
+      <div class="dialog-heading">
+        <h2>Chapter importer</h2>
+        <button data-close aria-label="Close importer">×</button>
+      </div>
+      <p class="eyebrow">BUNDLED WORKFLOW PREVIEW · NO LIVE FETCHING</p>
+      <div class="import-book">
+        <img
+          src="/assets/signal.svg"
+          width="90"
+          height="135"
+          alt="Original cover of The Signal Room"
+        />
+        <div>
+          <h3>The Signal Room</h3>
+          <p>Webnovel Reader · Original demo fiction</p>
+          <p>Source: bundled demonstration catalog</p>
+        </div>
+      </div>
+      <button id="discover">Discover sample chapters</button>
+      <p id="discovery-status" role="status">
+        Ready to explore the sample catalog.
+      </p>
+      <div id="import-chapters" hidden></div>
+      <button id="import-selected" hidden>Open selected sample chapter</button>
+      <p>No URL entry, scraping, download, or server import occurs here.</p>
+    </dialog>
+    <dialog id="reset">
+      <h2>Reset this demo?</h2>
+      <p>
+        Clear this demo’s reading positions, listening position, and preferences
+        on this device. Other sites and browser data are untouched.
+      </p>
+      <button id="reset-confirm">Reset demo data</button
+      ><button data-close>Cancel</button>
+    </dialog>
+    <p id="notice" role="status"></p>
+    <noscript
+      ><p class="demo-note">
+        JavaScript is required for interactive reading. This demo has no account
+        system or backend.
+        <a href="https://parampathak.com/projects/webnovel-reader/"
+          >Read the case study instead.</a
+        >
+      </p></noscript
+    >
+  </body>
 </html>
