@@ -329,6 +329,29 @@ async function run(engine, name) {
           .getByRole("button", { name: "Close audio controls", exact: true })
           .click();
         await p.locator("audio").evaluate((a) => {
+          const snapshot = () => ({
+            time: a.currentTime,
+            duration: a.duration,
+            ended: a.ended,
+            paused: a.paused,
+            ready: a.readyState,
+            error: a.error?.code,
+            blobSource: a.currentSrc.startsWith("blob:"),
+          });
+          window.replayBefore = snapshot();
+          window.replayTrace = [];
+          for (const event of [
+            "emptied",
+            "loadedmetadata",
+            "playing",
+            "pause",
+            "ended",
+            "seeking",
+            "seeked",
+          ])
+            a.addEventListener(event, () =>
+              window.replayTrace.push({ event, ...snapshot() }),
+            );
           window.replayStartedAt = null;
           window.replayResetAt = null;
           a.addEventListener(
@@ -347,7 +370,31 @@ async function run(engine, name) {
           );
         });
         await p.locator("#listen").click();
-        await p.waitForFunction(() => window.replayResetAt !== null);
+        await p
+          .waitForFunction(() => window.replayResetAt !== null)
+          .catch(async (error) => {
+            console.error(
+              "Native replay diagnostics",
+              await p.evaluate(() => {
+                const a = document.querySelector("audio");
+                return {
+                  before: window.replayBefore,
+                  trace: window.replayTrace,
+                  reset: window.replayResetAt,
+                  started: window.replayStartedAt,
+                  now: {
+                    time: a.currentTime,
+                    duration: a.duration,
+                    ended: a.ended,
+                    paused: a.paused,
+                    error: a.error?.code,
+                  },
+                  notice: document.querySelector("#notice").textContent,
+                };
+              }),
+            );
+            throw error;
+          });
         await p.waitForFunction(() => window.replayStartedAt !== null);
         assert(
           await p.evaluate(() => window.replayResetAt <= 0.08),
