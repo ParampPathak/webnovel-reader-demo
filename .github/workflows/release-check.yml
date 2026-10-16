@@ -24,9 +24,11 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - run: npm run verify
       - run: npx playwright install ${{ matrix.browser }}
       - run: node scripts/verify-deployment.mjs
       - run: npm run test:browser
+      - run: npm run test:cache
       - run: npm run test:accessibility
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()

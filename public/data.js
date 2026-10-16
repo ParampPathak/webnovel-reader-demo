@@ -6,7 +6,7 @@ export const books = [
     id: "signal",
     title: "The Signal Room",
     author: "Webnovel Reader",
-    cover: "signal.svg",
+    cover: "/assets/signal.svg",
     genre: "A quiet mystery",
     description:
       "An old railway, a warm brass dial, and a light that answers from across the valley.",
@@ -53,7 +53,7 @@ export const books = [
     id: "garden",
     title: "A Map of Small Things",
     author: "Webnovel Reader",
-    cover: "garden.svg",
+    cover: "/assets/garden.svg",
     genre: "Notes from a city garden",
     description:
       "A gardener starts a map of the overlooked paths that bring a neighbourhood together.",

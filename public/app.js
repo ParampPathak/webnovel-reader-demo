@@ -93,7 +93,7 @@ function renderLibrary() {
     ...books.map((book) => {
       const card = el("article", undefined, { class: "book-card" });
       const img = el("img", undefined, {
-        src: "/assets/" + book.cover,
+        src: book.cover,
         alt: `Original cover of ${book.title}`,
         width: 140,
         height: 210,

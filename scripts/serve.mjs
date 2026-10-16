@@ -11,6 +11,7 @@ const types = {
   ".mp3": "audio/mpeg",
   ".webp": "image/webp",
   ".png": "image/png",
+  ".json": "application/json",
 };
 http
   .createServer(async (req, res) => {
@@ -30,9 +31,16 @@ http
       };
       const rules = await readFile(path.join(root, "_headers"), "utf8");
       // Production is HTTPS. Only the workstation's HTTP preview omits upgrading.
+      let activeRule = false;
       for (const line of rules.split("\n")) {
+        if (line.startsWith("/")) {
+          activeRule = line.endsWith("*")
+            ? url.pathname.startsWith(line.slice(0, -1).trim())
+            : url.pathname === line.trim();
+          continue;
+        }
         const match = line.match(/^  ([^:]+): (.+)$/);
-        if (match && match[1] !== "Cache-Control")
+        if (activeRule && match)
           headers[match[1]] = match[2].replace(
             "; upgrade-insecure-requests",
             "",

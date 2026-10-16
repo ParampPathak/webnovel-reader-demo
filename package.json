@@ -8,6 +8,7 @@
     "dev": "node scripts/serve.mjs",
     "test": "node --test tests/*.test.mjs",
     "test:browser": "node tests/browser.cjs",
+    "test:cache": "node tests/cache.cjs",
     "test:accessibility": "node tests/accessibility.cjs",
     "verify": "npm run build && npm test"
   },

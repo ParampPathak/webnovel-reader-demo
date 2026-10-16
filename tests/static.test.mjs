@@ -2,6 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { books, excerpt } from "../public/data.js";
+import { createHash } from "node:crypto";
+const manifest = JSON.parse(readFileSync("dist/asset-manifest.json", "utf8"));
+const built = (source) =>
+  "dist" + manifest.assets.find((a) => a.source === source).path;
 const walk = (root) =>
   readdirSync(root).flatMap((name) => {
     const p = `${root}/${name}`;
@@ -10,7 +14,7 @@ const walk = (root) =>
 test("original sample content and recording are present", () => {
   assert.equal(books.length, 2);
   assert.equal(books[0].chapters[0].paragraphs[0], excerpt);
-  const mp3 = readFileSync("dist/assets/signal-room.mp3");
+  const mp3 = readFileSync(built("assets/signal-room.mp3"));
   assert.equal(mp3.toString("ascii", 0, 3), "ID3");
   assert(mp3.length > 100000 && mp3.length < 300000);
 });
@@ -31,10 +35,10 @@ test("source and exact static build contain no private endpoints or credentials"
     ])
       assert(!pattern.test(text), p);
   }
-  const app = readFileSync("dist/app.js", "utf8");
+  const app = readFileSync(built("app.js"), "utf8");
   assert(!/\b(XMLHttpRequest|WebSocket|EventSource)\s*\(/.test(app));
   assert.equal((app.match(/\bfetch\s*\(/g) || []).length, 1);
-  assert.match(app, /fetch\(["']\/assets\/signal-room\.mp3["']/);
+  assert.match(app, /fetch\(["']\/assets\/signal-room\.[a-f0-9]{12}\.mp3["']/);
   const headers = readFileSync("dist/_headers", "utf8");
   for (const policy of [
     "connect-src 'self'",
@@ -63,18 +67,41 @@ test("navigation, local state, and sample-only importer stay explicit", () => {
   assert(!html.includes('type="url"'));
   assert(html.includes("No URL entry"));
   assert(html.includes("not individual words"));
-  const app = readFileSync("dist/app.js", "utf8");
+  const app = readFileSync(built("app.js"), "utf8");
   assert.match(app, /key\s*=\s*["']reader-demo-v1["']/);
   assert(!app.includes("localStorage.clear"));
 });
 
-test("the document and data import use release-versioned asset URLs", () => {
+test("every mutable asset is content-addressed and the document matches its manifest", () => {
   const html = readFileSync("dist/index.html", "utf8");
-  const app = readFileSync("dist/app.js", "utf8");
-  const script = html.match(/src="\/app\.js\?v=([^"&]+)"/);
-  const style = html.match(/href="\/style\.css\?v=([^"&]+)"/);
-  const data = app.match(/from "\.\/data\.js\?v=([^"&]+)"/);
-  assert(script && style && data, "All mutable entry assets must be versioned");
-  assert.equal(script[1], style[1]);
-  assert.equal(script[1], data[1]);
+  const app = readFileSync(built("app.js"), "utf8");
+  for (const entry of manifest.assets) {
+    const file = entry.path === "/" ? "dist/index.html" : "dist" + entry.path;
+    const bytes = readFileSync(file);
+    assert.equal(
+      createHash("sha256").update(bytes).digest("hex"),
+      entry.sha256,
+    );
+    if (entry.path !== "/")
+      assert(entry.path.includes("." + entry.sha256.slice(0, 12) + "."));
+  }
+  for (const source of ["app.js", "style.css"]) {
+    assert(
+      html.includes(manifest.assets.find((a) => a.source === source).path),
+    );
+  }
+  assert(
+    app.includes(
+      manifest.assets
+        .find((a) => a.source === "data.js")
+        .path.split("/")
+        .at(-1),
+    ),
+  );
+  assert(!/\/(app\.js|style\.css)(\?|["'])/.test(html));
+  assert(
+    readFileSync("dist/_headers", "utf8").includes(
+      "max-age=31536000, immutable",
+    ),
+  );
 });

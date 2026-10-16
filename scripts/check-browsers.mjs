@@ -39,7 +39,11 @@ try {
     await setTimeout(300);
   }
   if (!ready) throw Error("Preview did not become ready");
-  for (const script of ["tests/browser.cjs", "tests/accessibility.cjs"]) {
+  for (const script of [
+    "tests/browser.cjs",
+    "tests/cache.cjs",
+    "tests/accessibility.cjs",
+  ]) {
     await new Promise((resolve, reject) => {
       const child = spawn(process.execPath, [script], {
         stdio: "inherit",

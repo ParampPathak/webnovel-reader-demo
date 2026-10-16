@@ -1,5 +1,4 @@
 const { webkit, chromium } = require("@playwright/test");
-const { execFileSync } = require("node:child_process");
 const { createHash } = require("node:crypto");
 const assert = require("node:assert/strict"),
   fs = require("node:fs");
@@ -41,16 +40,17 @@ async function run(engine, name) {
       const assetChecks = [];
       p.on("response", (response) => {
         const url = new URL(response.url());
-        if (!["/app.js", "/style.css", "/data.js"].includes(url.pathname))
+        if (
+          !/^\/assets\/(app|style|data)\.[a-f0-9]{12}\.(js|css)$/.test(
+            url.pathname,
+          )
+        )
           return;
         assetChecks.push(
           response
             .body()
             .then((actual) => {
-              const expected =
-                new URL(origin).hostname === "127.0.0.1"
-                  ? fs.readFileSync("dist" + url.pathname)
-                  : execFileSync("git", ["show", "HEAD:public" + url.pathname]);
+              const expected = fs.readFileSync("dist" + url.pathname);
               assert(
                 actual.equals(expected),
                 "Browser received stale asset: " + url.pathname,
