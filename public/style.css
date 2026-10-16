@@ -373,6 +373,17 @@ body.reading .site-footer {
   font-size: 10px;
   margin-top: 2px;
 }
+.reader-toolbar svg {
+  display: block;
+  width: 24px;
+  height: 24px;
+  margin: 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 .reader-toolbar [aria-pressed="true"] {
   color: #77baff;
 }

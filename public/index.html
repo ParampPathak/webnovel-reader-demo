@@ -94,11 +94,26 @@
           ><button id="next" aria-label="Next page">→</button>
         </div>
         <nav class="reader-toolbar" aria-label="Reader controls">
-          <button id="contents-open">☷ <span>Contents</span></button
-          ><button id="theme-cycle">◐ <span>Theme</span></button
+          <button id="contents-open">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M9 5h12M9 12h12M9 19h12M3 5h1M3 12h1M3 19h1" /></svg
+            ><span>Contents</span></button
+          ><button id="theme-cycle">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 3a9 9 0 0 0 0 18Z" fill="currentColor" /></svg
+            ><span>Theme</span></button
           ><button id="listen" aria-pressed="false">
-            ♫ <span>Listen</span></button
-          ><button id="audio-open">◷ <span>Audio sample</span></button>
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M4 13v-1a8 8 0 0 1 16 0v1" />
+              <rect x="3" y="12" width="4" height="9" rx="1" />
+              <rect x="17" y="12" width="4" height="9" rx="1" /></svg
+            ><span>Listen</span></button
+          ><button id="audio-open">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M4 10v4M8 5v14M12 2v20M16 6v12M20 10v4" /></svg
+            ><span>Audio sample</span>
+          </button>
         </nav>
       </section>
     </main>
