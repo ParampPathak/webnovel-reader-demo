@@ -26,6 +26,7 @@ let current = null,
   words = [],
   wanted = false;
 let audioRestored = false,
+  audioCompleted = false,
   resetting = false,
   preparingAudio = null,
   usesBlob = true,
@@ -287,7 +288,12 @@ async function playSample() {
     if (!wanted || request !== playGeneration) return;
     // Reset the ended decoder rather than racing a seek with a new play call.
     // Keep the same media element, source, speed, and ordinary pause/resume path.
-    if (audio.ended) audio.load();
+    // WebKit can briefly clear `ended` at EOF before the async play resumes.
+    // Remember the native completion event until a genuine seek away or replay.
+    if (audioCompleted || audio.ended) {
+      audioCompleted = false;
+      audio.load();
+    }
     try {
       await audio.play();
     } catch (error) {
@@ -341,9 +347,15 @@ audio.addEventListener("loadedmetadata", () => {
 });
 for (const event of ["playing", "pause", "ended"])
   audio.addEventListener(event, () => {
-    if (event === "ended") wanted = false;
+    if (event === "ended") {
+      audioCompleted = true;
+      wanted = false;
+    }
     syncAudio();
   });
+audio.addEventListener("seeking", () => {
+  if (audio.currentTime < audio.duration - 0.12) audioCompleted = false;
+});
 audio.addEventListener("error", () => {
   if (wanted && !startingAudio) {
     stopListening();
