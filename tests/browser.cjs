@@ -7,6 +7,8 @@ const results = [],
   requests = new Set(),
   browserAssets = new Map(),
   providerReports = [],
+  providerWarnings = [],
+  providerDeliveryWarnings = [],
   requestFailures = [],
   errors = [];
 fs.mkdirSync("test-results", { recursive: true });
@@ -39,8 +41,28 @@ async function run(engine, name) {
       });
       const p = await context.newPage();
       const assetChecks = [];
+      const reportOnlyWarnings = [];
+      let providerPolicyObserved = false;
       p.on("response", (response) => {
         const url = new URL(response.url());
+        if (response.request().isNavigationRequest() && url.origin === origin) {
+          assetChecks.push(
+            response.allHeaders().then((headers) => {
+              const policy =
+                headers["content-security-policy-report-only"] || "";
+              const reporting = [
+                policy,
+                headers["report-to"],
+                headers["reporting-endpoints"],
+              ].join(" ");
+              if (
+                policy &&
+                reporting.includes("https://csp-reporting.cloudflare.com/")
+              )
+                providerPolicyObserved = true;
+            }),
+          );
+        }
         if (
           !/^\/assets\/(app|style|data)\.[a-f0-9]{12}\.(js|css)$/.test(
             url.pathname,
@@ -67,7 +89,33 @@ async function run(engine, name) {
       });
       p.on("pageerror", (e) => errors.push(e.message));
       p.on("console", (x) => {
-        if (x.type() === "error") errors.push(x.text());
+        if (x.type() !== "error") return;
+        const text = x.text();
+        const location = x.location().url;
+        if (
+          new URL(origin).hostname === "reader.parampathak.com" &&
+          text === "Failed to load resource: Could not resolve hostname" &&
+          location.startsWith("https://csp-reporting.cloudflare.com/")
+        ) {
+          providerDeliveryWarnings.push({
+            engine: name,
+            width,
+            text,
+            origin: new URL(location).origin,
+            path: new URL(location).pathname,
+          });
+          return;
+        }
+        // Do not hide enforced CSP errors or arbitrary report-only warnings.
+        // Accept only known bundled resources under the observed hosting policy.
+        if (
+          new URL(origin).hostname === "reader.parampathak.com" &&
+          /^\[Report Only\] Refused to (?:load|connect to) https:\/\/reader\.parampathak\.com\/assets\/(?:app\.[a-f0-9]{12}\.js|data\.[a-f0-9]{12}\.js|signal-room\.[a-f0-9]{12}\.mp3) because it does not appear in the (?:script-src|connect-src) directive of the Content Security Policy\.$/.test(
+            text,
+          )
+        ) {
+          reportOnlyWarnings.push(text);
+        } else errors.push(text);
       });
       p.on("requestfailed", (r) => {
         const url = new URL(r.url());
@@ -459,6 +507,20 @@ async function run(engine, name) {
         );
       }
       await Promise.all(assetChecks);
+      if (reportOnlyWarnings.length) {
+        assert(
+          providerPolicyObserved,
+          "Report-only warning without verified Cloudflare reporting policy",
+        );
+        providerWarnings.push({
+          engine: name,
+          width,
+          warnings: reportOnlyWarnings,
+        });
+        console.log(
+          `HOSTING REPORT-ONLY: ${name} ${width}px: ${reportOnlyWarnings.length} verified provider warnings`,
+        );
+      }
       await context.close();
     }
   } finally {
@@ -482,6 +544,8 @@ async function run(engine, name) {
         passed: results,
         requests: [...requests],
         providerReports,
+        providerWarnings,
+        providerDeliveryWarnings,
         requestFailures,
         browserAssets: [...browserAssets.values()],
         errors,
