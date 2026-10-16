@@ -7,6 +7,7 @@ const results = [],
   requests = new Set(),
   browserAssets = new Map(),
   providerReports = [],
+  requestFailures = [],
   errors = [];
 fs.mkdirSync("test-results", { recursive: true });
 const shot = async (p, name) => {
@@ -68,9 +69,20 @@ async function run(engine, name) {
       p.on("console", (x) => {
         if (x.type() === "error") errors.push(x.text());
       });
-      p.on("requestfailed", (r) =>
-        console.error("REQUEST FAILED", r.url(), r.failure()?.errorText),
-      );
+      p.on("requestfailed", (r) => {
+        const url = new URL(r.url());
+        const failure = {
+          origin: url.origin,
+          path: url.pathname,
+          reason: r.failure()?.errorText,
+        };
+        requestFailures.push(failure);
+        console.warn(
+          "REQUEST FAILED",
+          url.origin + url.pathname,
+          failure.reason,
+        );
+      });
       await context.route("**/*", (route) => {
         const request = route.request();
         const u = new URL(request.url());
@@ -384,6 +396,7 @@ async function run(engine, name) {
         passed: results,
         requests: [...requests],
         providerReports,
+        requestFailures,
         browserAssets: [...browserAssets.values()],
         errors,
       },
