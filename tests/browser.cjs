@@ -289,14 +289,25 @@ async function run(engine, name) {
         assert(await p.locator("audio").evaluate((a) => a.paused));
         assert(!(await p.locator("#mini").isVisible()));
         const pos = await p.locator("audio").evaluate((a) => a.currentTime);
+        await p.evaluate(() => {
+          window.resumeCheckEpoch = performance.now();
+        });
         await p.locator("#listen").click();
         await p.waitForTimeout(100);
+        const resumed = await p.locator("audio").evaluate((a) => ({
+          position: a.currentTime,
+          paused: a.paused,
+          rate: a.playbackRate,
+          elapsed: (performance.now() - window.resumeCheckEpoch) / 1000,
+        }));
+        // Driver/screenshot scheduling is not a fixed amount of media time.
+        // The clock may advance only by measured elapsed time at its actual rate.
         assert(
-          await p.locator("audio").evaluate(
-            // Native MP3 decoders can quantize the resume clock by a frame.
-            (a, pos) => a.currentTime >= pos - 0.08 && a.currentTime < pos + 2,
-            pos,
-          ),
+          !resumed.paused &&
+            resumed.position >= pos - 0.08 &&
+            resumed.position <= pos + resumed.elapsed * resumed.rate + 0.08,
+          "Native pause/resume: " +
+            JSON.stringify({ pausedPosition: pos, ...resumed }),
         );
         await p.locator("#listen").click();
         await p.locator("#listen").click();
