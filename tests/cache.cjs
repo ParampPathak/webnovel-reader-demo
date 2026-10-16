@@ -30,7 +30,8 @@ const results = [];
         checks = [],
         errors = [],
         seen = new Set(),
-        requests = [];
+        requests = [],
+        revalidated = [];
       page.on("pageerror", (e) => errors.push(e.message));
       page.on("request", (r) => {
         const url = new URL(r.url());
@@ -53,6 +54,19 @@ const results = [];
         const url = new URL(r.url()),
           entry = expected.get(url.pathname);
         if (!entry) return;
+        if (r.status() === 304) {
+          // A 304 reuses this context's previously byte-verified response.
+          if (!seen.has(url.pathname))
+            errors.push("304 without a verified cached body: " + url.pathname);
+          revalidated.push(url.pathname);
+          return;
+        }
+        if (r.status() !== 200) {
+          errors.push(
+            "Unexpected asset status " + r.status() + ": " + url.pathname,
+          );
+          return;
+        }
         checks.push(
           r
             .body()
@@ -119,7 +133,7 @@ const results = [];
       await Promise.all(checks);
       assert.deepEqual(errors, []);
       assert.equal(seen.size, 3);
-      results.push({ engine: name, observedRequests: requests });
+      results.push({ engine: name, observedRequests: requests, revalidated });
     } finally {
       await browser.close();
     }

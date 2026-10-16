@@ -328,10 +328,25 @@ async function run(engine, name) {
         await p
           .getByRole("button", { name: "Close audio controls", exact: true })
           .click();
+        await p.locator("audio").evaluate((a) => {
+          window.replayStartedAt = null;
+          a.addEventListener(
+            "playing",
+            () => {
+              window.replayStartedAt = a.currentTime;
+            },
+            { once: true },
+          );
+        });
         await p.locator("#listen").click();
+        await p.waitForFunction(() => window.replayStartedAt !== null);
+        assert(
+          await p.evaluate(() => window.replayStartedAt <= 0.08),
+          "Replay must start at the beginning, not merely be playing later",
+        );
         await p.waitForFunction(() => {
           const a = document.querySelector("audio");
-          return !a.paused && a.currentTime > 0 && a.currentTime < 3;
+          return !a.paused && a.currentTime > 0;
         });
         await p.locator("#listen").click();
         record(
