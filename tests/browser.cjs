@@ -330,6 +330,14 @@ async function run(engine, name) {
           .click();
         await p.locator("audio").evaluate((a) => {
           window.replayStartedAt = null;
+          window.replayResetAt = null;
+          a.addEventListener(
+            "loadedmetadata",
+            () => {
+              window.replayResetAt = a.currentTime;
+            },
+            { once: true },
+          );
           a.addEventListener(
             "playing",
             () => {
@@ -339,10 +347,11 @@ async function run(engine, name) {
           );
         });
         await p.locator("#listen").click();
+        await p.waitForFunction(() => window.replayResetAt !== null);
         await p.waitForFunction(() => window.replayStartedAt !== null);
         assert(
-          await p.evaluate(() => window.replayStartedAt <= 0.08),
-          "Replay must start at the beginning, not merely be playing later",
+          await p.evaluate(() => window.replayResetAt <= 0.08),
+          "Replay must reset at the beginning before native playback advances",
         );
         await p.waitForFunction(() => {
           const a = document.querySelector("audio");

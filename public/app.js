@@ -285,23 +285,9 @@ async function playSample() {
   try {
     await prepareAudio();
     if (!wanted || request !== playGeneration) return;
-    if (audio.ended) {
-      await new Promise((resolve, reject) => {
-        const finish = () => {
-          clearTimeout(timeout);
-          audio.removeEventListener("seeked", finish);
-          resolve();
-        };
-        const timeout = setTimeout(() => {
-          audio.removeEventListener("seeked", finish);
-          reject(Error("Sample rewind did not complete"));
-        }, 5000);
-        audio.addEventListener("seeked", finish, { once: true });
-        audio.currentTime = 0;
-        if (!audio.seeking) finish();
-      });
-      if (!wanted || request !== playGeneration) return;
-    }
+    // Reset the ended decoder rather than racing a seek with a new play call.
+    // Keep the same media element, source, speed, and ordinary pause/resume path.
+    if (audio.ended) audio.load();
     try {
       await audio.play();
     } catch (error) {
