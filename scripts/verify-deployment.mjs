@@ -13,11 +13,25 @@ const receipt = {
   commit: git(["rev-parse", "HEAD"]).toString().trim(),
   assets: [],
 };
+// Verify the URLs users actually load, including their release cache keys.
+const html = git(["show", "HEAD:public/index.html"]).toString();
+const app = git(["show", "HEAD:public/app.js"]).toString();
+const references = [
+  ...Array.from(html.matchAll(/(?:src|href)="([^"]+)"/g), (m) => m[1]),
+  ...Array.from(app.matchAll(/from "([^"]+)"/g), (m) => m[1]),
+];
 for (const file of files) {
   if (file === "public/_headers") continue;
   const pathname =
     file === "public/index.html" ? "/" : file.slice("public".length);
-  const response = await fetch(new URL(pathname, origin));
+  const reference = references.find(
+    (value) =>
+      new URL(value, origin).origin === new URL(origin).origin &&
+      new URL(value, origin).pathname === pathname,
+  );
+  const assetUrl = new URL(reference || pathname, origin);
+  assert.equal(assetUrl.origin, new URL(origin).origin);
+  const response = await fetch(assetUrl);
   assert.equal(response.status, 200, pathname);
   const actual = Buffer.from(await response.arrayBuffer());
   const expected = git(["show", "HEAD:" + file]);
@@ -26,7 +40,7 @@ for (const file of files) {
     "Deployed bytes differ from tested Git source: " + pathname,
   );
   receipt.assets.push({
-    path: pathname,
+    path: assetUrl.pathname + assetUrl.search,
     bytes: actual.length,
     sha256: createHash("sha256").update(actual).digest("hex"),
   });

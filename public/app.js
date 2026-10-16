@@ -1,4 +1,4 @@
-import { books, excerpt } from "./data.js";
+import { books, excerpt } from "./data.js?v=20261015-2";
 const $ = (id) => document.getElementById(id);
 const key = "reader-demo-v1";
 let state = {

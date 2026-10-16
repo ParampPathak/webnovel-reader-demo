@@ -67,3 +67,14 @@ test("navigation, local state, and sample-only importer stay explicit", () => {
   assert.match(app, /key\s*=\s*["']reader-demo-v1["']/);
   assert(!app.includes("localStorage.clear"));
 });
+
+test("the document and data import use release-versioned asset URLs", () => {
+  const html = readFileSync("dist/index.html", "utf8");
+  const app = readFileSync("dist/app.js", "utf8");
+  const script = html.match(/src="\/app\.js\?v=([^"&]+)"/);
+  const style = html.match(/href="\/style\.css\?v=([^"&]+)"/);
+  const data = app.match(/from "\.\/data\.js\?v=([^"&]+)"/);
+  assert(script && style && data, "All mutable entry assets must be versioned");
+  assert.equal(script[1], style[1]);
+  assert.equal(script[1], data[1]);
+});

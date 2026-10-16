@@ -1,9 +1,12 @@
 const { webkit, chromium } = require("@playwright/test");
+const { execFileSync } = require("node:child_process");
+const { createHash } = require("node:crypto");
 const assert = require("node:assert/strict"),
   fs = require("node:fs");
 const origin = process.env.DEMO_URL || "http://127.0.0.1:4330";
 const results = [],
   requests = new Set(),
+  browserAssets = new Map(),
   providerReports = [],
   errors = [];
 fs.mkdirSync("test-results", { recursive: true });
@@ -35,6 +38,32 @@ async function run(engine, name) {
         isMobile: width < 900,
       });
       const p = await context.newPage();
+      const assetChecks = [];
+      p.on("response", (response) => {
+        const url = new URL(response.url());
+        if (!["/app.js", "/style.css", "/data.js"].includes(url.pathname))
+          return;
+        assetChecks.push(
+          response
+            .body()
+            .then((actual) => {
+              const expected =
+                new URL(origin).hostname === "127.0.0.1"
+                  ? fs.readFileSync("dist" + url.pathname)
+                  : execFileSync("git", ["show", "HEAD:public" + url.pathname]);
+              assert(
+                actual.equals(expected),
+                "Browser received stale asset: " + url.pathname,
+              );
+              browserAssets.set(name + url.pathname + url.search, {
+                engine: name,
+                url: url.origin + url.pathname + url.search,
+                sha256: createHash("sha256").update(actual).digest("hex"),
+              });
+            })
+            .catch((error) => errors.push(error.message)),
+        );
+      });
       p.on("pageerror", (e) => errors.push(e.message));
       p.on("console", (x) => {
         if (x.type() === "error") errors.push(x.text());
@@ -297,6 +326,7 @@ async function run(engine, name) {
           `${name}: native audio, pause/resume, headphones ON/OFF, seek ±15s, 2x, excerpt highlight, no duplicates/autoplay, Contents during playback, import preview and reset`,
         );
       }
+      await Promise.all(assetChecks);
       await context.close();
     }
   } finally {
@@ -320,6 +350,7 @@ async function run(engine, name) {
         passed: results,
         requests: [...requests],
         providerReports,
+        browserAssets: [...browserAssets.values()],
         errors,
       },
       null,

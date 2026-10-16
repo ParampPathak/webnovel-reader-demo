@@ -42,3 +42,5 @@ Original demo code, stories, cover artwork, and the original recording are distr
 ## Deployment
 
 Cloudflare Pages: production branch `main`, build command `npm run verify`, output `dist`, Node.js 24. No environment secrets or runtime bindings are needed. Verify the deployed commit, HTTPS, security headers, exact assets, and browser/network checks before linking a release. Retain a previous Pages deployment for rollback. Never point this project at the private application or publish private source, books, configuration, or caches.
+
+The HTML entry point versions its script and stylesheet URLs, and the script versions its data-module import. Advance these release keys whenever those assets change so existing browser/edge caches cannot mix old code with a new document. Deployment verification compares the exact referenced URLs, not an unversioned substitute. No zone-wide cache policy changes are required.
