@@ -16,7 +16,7 @@ test("original sample content and recording are present", () => {
   assert.equal(books[0].chapters[0].paragraphs[0], excerpt);
   const mp3 = readFileSync(built("assets/signal-room.mp3"));
   assert.equal(mp3.toString("ascii", 0, 3), "ID3");
-  assert(mp3.length > 100000 && mp3.length < 300000);
+  assert(mp3.length > 100000 && mp3.length < 600000);
 });
 test("source and exact static build contain no private endpoints or credentials", () => {
   for (const p of [...walk("public"), ...walk("dist")]) {

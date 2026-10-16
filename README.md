@@ -35,7 +35,7 @@ Acceptance runs locally on Windows with both WebKit and Chromium. Tests use mobi
 
 ## Audio and content
 
-`public/assets/signal-room.mp3` is a 24-second static synthetic recording of the opening excerpt in `public/data.js`. Speech was generated offline with eSpeak NG 0.3.5 (Emscripten port, en-us voice, 150 words/minute), then encoded with FFmpeg as 64 kbit/s, 22050 Hz mono MP3 with a seek header. No production TTS worker was used. The GPL-licensed compilers are development tools, not distributed runtime dependencies. The recording contains original prose, not private library material. Highlighting identifies the recorded excerpt, not individual words or production Andrew Neural voice quality.
+`public/assets/signal-room.mp3` is a pre-generated Michael/Kokoro neural reading of the original opening excerpt, not the production Andrew voice. It is a 25.7-second, 96 kbit/s mono MP3 (about 310 kB) generated locally with Apache-licensed tools/model and bundled statically. No production worker, paid speech API, browser speech synthesis, or live generation is used. [Audio provenance and license review](docs/audio-provenance.md) records the exact model, voice and recording hashes, redistribution basis, review evidence and timing limits. Highlighting follows the recorded paragraph, not fabricated word timings.
 
 Original demo code, stories, cover artwork, and the original recording are distributed under the accompanying MIT license. Browser-testing dependencies retain their own licenses.
 

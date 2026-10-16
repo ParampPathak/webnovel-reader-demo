@@ -291,6 +291,40 @@ async function run(engine, name) {
         await p.locator("#listen").click();
         assert(!(await p.locator("#mini").isVisible()));
         assert.equal(await p.locator("audio").count(), 1);
+        await p.locator("#listen").click();
+        await p.waitForFunction(() => !document.querySelector("audio").paused);
+        await p.locator("#contents-open").click();
+        await p.locator("#chapter-list button").nth(1).click();
+        assert(await p.locator("audio").evaluate((a) => a.paused));
+        assert(!(await p.locator("#mini").isVisible()));
+        await p.locator("#audio-open").click();
+        await p.locator("#open-excerpt").click();
+        await p.waitForFunction(() => !document.querySelector("audio").paused);
+        assert.match(
+          await p.locator("#page-status").textContent(),
+          /Chapter 1\/3/,
+        );
+        await p.locator("#mini-title").click();
+        await p.locator("#seek").fill("99.9");
+        await p.waitForFunction(() => document.querySelector("audio").ended);
+        await p.locator("#mini").waitFor({ state: "hidden" });
+        assert(!(await p.locator("#mini").isVisible()));
+        assert.equal(
+          await p.locator("#listen").getAttribute("aria-pressed"),
+          "false",
+        );
+        await p
+          .getByRole("button", { name: "Close audio controls", exact: true })
+          .click();
+        await p.locator("#listen").click();
+        await p.waitForFunction(() => {
+          const a = document.querySelector("audio");
+          return !a.paused && a.currentTime > 0 && a.currentTime < 3;
+        });
+        await p.locator("#listen").click();
+        record(
+          `${name}: neural sample chapter boundary, explicit excerpt return, completion and replay`,
+        );
         await shot(p, name + "-reader");
         await p.locator("#library-back").click();
         await p.locator("#import-open").click();

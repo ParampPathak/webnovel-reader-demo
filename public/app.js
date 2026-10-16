@@ -172,6 +172,12 @@ function reflow(anchor = 0) {
   turnPage(Math.floor(Math.max(0, x) / area.clientWidth));
 }
 function renderChapter(anchor = 0) {
+  if (wanted && (current.id !== books[0].id || chapter !== 0)) {
+    stopListening();
+    notify(
+      "This demo records only The Signal Room’s opening excerpt. Listening paused.",
+    );
+  }
   const section = current.chapters[chapter],
     article = $("passage");
   words = [];
@@ -259,16 +265,43 @@ function stopListening() {
   startingAudio = false;
   wanted = false;
   audio.pause();
+  $("listen").removeAttribute("aria-busy");
   syncAudio();
 }
 async function playSample() {
+  if (!current || current.id !== books[0].id || chapter !== 0) {
+    notify(
+      "Open the recorded opening excerpt to hear this static narration sample.",
+    );
+    showDialog("audio-dialog");
+    return;
+  }
+  turnPage(0);
   const request = ++playGeneration;
   startingAudio = true;
   wanted = true;
+  $("listen").setAttribute("aria-busy", "true");
+  $("notice").textContent = "Loading bundled neural narration…";
   try {
     await prepareAudio();
     if (!wanted || request !== playGeneration) return;
-    if (audio.ended) audio.currentTime = 0;
+    if (audio.ended) {
+      await new Promise((resolve, reject) => {
+        const finish = () => {
+          clearTimeout(timeout);
+          audio.removeEventListener("seeked", finish);
+          resolve();
+        };
+        const timeout = setTimeout(() => {
+          audio.removeEventListener("seeked", finish);
+          reject(Error("Sample rewind did not complete"));
+        }, 5000);
+        audio.addEventListener("seeked", finish, { once: true });
+        audio.currentTime = 0;
+        if (!audio.seeking) finish();
+      });
+      if (!wanted || request !== playGeneration) return;
+    }
     try {
       await audio.play();
     } catch (error) {
@@ -292,7 +325,10 @@ async function playSample() {
     wanted = false;
     notify("Sample audio could not play. Please try Play again.");
   } finally {
-    if (request === playGeneration) startingAudio = false;
+    if (request === playGeneration) {
+      startingAudio = false;
+      $("listen").removeAttribute("aria-busy");
+    }
   }
   syncAudio();
 }
@@ -381,6 +417,11 @@ $("listen").onclick = () => {
 };
 $("play").onclick = togglePlay;
 $("expanded-play").onclick = togglePlay;
+$("open-excerpt").onclick = () => {
+  openBook(books[0].id, 0);
+  $("audio-dialog").close();
+  playSample();
+};
 $("stop").onclick = stopListening;
 $("mini-title").onclick = $("audio-open").onclick = () =>
   showDialog("audio-dialog");
