@@ -300,12 +300,16 @@ async function run(engine, name) {
           rate: a.playbackRate,
           elapsed: (performance.now() - window.resumeCheckEpoch) / 1000,
         }));
+        // macOS native MP3 clock re-anchoring measured 91 ms backwards at 2x.
+        // Budget at most five 24 ms decoder frames, never a seconds-wide skip.
+        const resumeTolerance = 0.12;
         // Driver/screenshot scheduling is not a fixed amount of media time.
         // The clock may advance only by measured elapsed time at its actual rate.
         assert(
           !resumed.paused &&
-            resumed.position >= pos - 0.08 &&
-            resumed.position <= pos + resumed.elapsed * resumed.rate + 0.08,
+            resumed.position >= pos - resumeTolerance &&
+            resumed.position <=
+              pos + resumed.elapsed * resumed.rate + resumeTolerance,
           "Native pause/resume: " +
             JSON.stringify({ pausedPosition: pos, ...resumed }),
         );
