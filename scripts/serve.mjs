@@ -69,6 +69,6 @@ http
       res.end("Not found");
     }
   })
-  .listen(4330, "127.0.0.1", () =>
-    console.log("Demo preview on http://127.0.0.1:4330"),
+  .listen(Number(process.env.PORT || 4330), "127.0.0.1", () =>
+    console.log(`Demo preview on http://127.0.0.1:${process.env.PORT || 4330}`),
   );

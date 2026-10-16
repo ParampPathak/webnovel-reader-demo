@@ -4,6 +4,7 @@ const assert = require("node:assert/strict"),
 const origin = process.env.DEMO_URL || "http://127.0.0.1:4330";
 const results = [],
   requests = new Set(),
+  providerReports = [],
   errors = [];
 fs.mkdirSync("test-results", { recursive: true });
 const shot = async (p, name) => {
@@ -42,8 +43,27 @@ async function run(engine, name) {
         console.error("REQUEST FAILED", r.url(), r.failure()?.errorText),
       );
       await context.route("**/*", (route) => {
-        const u = new URL(route.request().url());
+        const request = route.request();
+        const u = new URL(request.url());
         requests.add(u.origin);
+        // Existing custom-domain hosting security, not an application API.
+        // Keep all unknown origins blocked and record accepted reports explicitly.
+        const contentType = request.headers()["content-type"] || "";
+        if (
+          new URL(origin).hostname === "reader.parampathak.com" &&
+          u.origin === "https://csp-reporting.cloudflare.com" &&
+          request.method() === "POST" &&
+          /^(application\/csp-report|application\/reports\+json)(;|$)/.test(
+            contentType,
+          )
+        ) {
+          providerReports.push({
+            origin: u.origin,
+            method: request.method(),
+            contentType,
+          });
+          return route.continue();
+        }
         if (u.origin !== new URL(origin).origin) {
           errors.push("Unexpected network origin");
           return route.abort();
@@ -295,7 +315,13 @@ async function run(engine, name) {
   fs.writeFileSync(
     "test-results/browser-results.json",
     JSON.stringify(
-      { url: origin, passed: results, requests: [...requests], errors },
+      {
+        url: origin,
+        passed: results,
+        requests: [...requests],
+        providerReports,
+        errors,
+      },
       null,
       2,
     ),
