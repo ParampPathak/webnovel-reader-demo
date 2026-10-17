@@ -12,10 +12,35 @@ const result = {
   providerReports: [],
   providerWarnings: [],
   errors: [],
+  layoutReadiness: [],
 };
 fs.mkdirSync("test-results", { recursive: true });
-const ready = (p) =>
-  p.waitForFunction(() => window.ReaderNarration?.page().ready);
+const ready = async (p) => {
+  await p.waitForFunction(() => window.ReaderNarration?.page().ready);
+  const geometry = () => {
+    const d = document.querySelector('#readingFrame').contentDocument;
+    return { width: d.documentElement.clientWidth, height: d.documentElement.clientHeight,
+      extent: d.scrollingElement.scrollWidth, status: document.querySelector('#readingStatus').textContent,
+      mode: ReaderNarration.page().mode };
+  };
+  const before = await p.evaluate(geometry);
+  await p.evaluate(() => { delete window.__testLayout; });
+  // The ready flag means content loaded. ResizeObserver restores/recounts on its
+  // next layout pass; never use its previous page count as a gesture baseline.
+  await p.waitForFunction(() => {
+    const d = document.querySelector('#readingFrame').contentDocument;
+    if (ReaderNarration.page().mode !== 'pages') return true;
+    const count = ReaderPagination.pageCount(d.scrollingElement.scrollWidth, d.documentElement.clientWidth);
+    const status = document.querySelector('#readingStatus').textContent;
+    const key = [d.documentElement.clientWidth, d.documentElement.clientHeight, d.scrollingElement.scrollWidth, status].join(':');
+    if (window.__testLayout?.key !== key) window.__testLayout = {key, since: performance.now()};
+    return d.documentElement.clientHeight > 0 && status.endsWith('/' + count) &&
+      performance.now() - window.__testLayout.since >= 120;
+  });
+  const after = await p.evaluate(geometry);
+  result.layoutReadiness.push({before, after});
+  if (JSON.stringify(before) !== JSON.stringify(after)) console.log('LAYOUT readiness', {before, after});
+};
 const show = async (p) => {
   if (await p.locator("#revealChrome").isVisible())
     await p.locator("#revealChrome").click();

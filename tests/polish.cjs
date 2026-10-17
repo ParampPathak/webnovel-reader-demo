@@ -194,6 +194,16 @@ async function axe(p, name) {
       await expect(p.locator('.book-card')).toHaveCount(1);
       await p.getByRole('link',{name:'The Signal Room',exact:true}).click();
       await p.waitForFunction(()=>window.ReaderNarration?.page().ready);
+      const initialAnchor=await p.evaluate(()=>ReaderNarration.page().anchor);
+      for(const expanded of [true,false]) {
+        await p.locator('.browser-mode summary').click();
+        await expect(p.locator('.browser-mode details')).toHaveJSProperty('open',expanded);
+        await expect.poll(()=>p.evaluate(()=>{
+          const d=document.querySelector('#readingFrame').contentDocument;
+          return document.querySelector('#readingStatus').textContent.endsWith('/'+ReaderPagination.pageCount(d.scrollingElement.scrollWidth,d.documentElement.clientWidth));
+        })).toBe(true);
+        assert.equal(await p.evaluate(()=>ReaderNarration.page().anchor),initialAnchor,'Disclosure reflow retains the text anchor');
+      }
       await shot(p,`${name}-reader-near-black-desktop`);
       await p.setViewportSize({width:390,height:844});
       if(await p.locator('#revealChrome').isVisible())await p.locator('#revealChrome').click();
