@@ -1,46 +1,49 @@
-# Webnovel Reader · Interactive demo
+# Webnovel Reader — Browser Reader Mode
 
-A standalone demonstration of [Webnovel Reader](https://parampathak.com/projects/webnovel-reader/): open original sample stories, turn pages, change reading appearance, and try a short audio excerpt. This is not the private self-hosted application.
+A browser-only adaptation of the real Webnovel Reader frontend: the actual compact library, near-black reading surface, CSS-column pagination, native mobile gestures, toolbar, five themes, typography controls, bookmarks, progress recovery and virtualized Contents list. The original private application and its services are separate and unchanged.
 
-## Architecture and privacy
+**[Open Browser Reader](https://reader.parampathak.com)**
 
-Static HTML, CSS, and JavaScript, served by Cloudflare Pages. Two original stories and original SVG covers are bundled with the source. Reading positions, preferences, and a separate sample-listening cursor live only in this site's browser storage. Reset removes only this demo's storage key.
+## Read your own EPUBs, locally
 
-There is no backend, database, account system, live scraper, application analytics, speech-service request, or dependency on the private reader. The importer is explicitly a bundled workflow preview. CSP allows connections only to this static site's own origin: one fixed MP3 asset is fetched without credentials and prebuffered into a local Blob for reliable seeking on hosts without byte-range support. Media is limited to same-origin assets and local blobs; other origins remain blocked. No Pages Functions, Workers, or tunnels are used. Provider-level security reporting on a custom domain is a separate hosting configuration and is not an application dependency. These controls are not an absolute-security claim.
+Choose **Import EPUB locally**. ZIP parsing happens in a local worker; book files and progress are stored in IndexedDB on this browser profile. Nothing is uploaded to a book server, Flask API, TTS worker or cloud library. Book navigation identifiers stay in URL fragments, not HTTP query strings. There are no accounts or cross-device synchronization. Other people using the same browser profile can access that profile's library; this is device-local storage, not an account isolation system.
 
-The custom domain preserves its existing Cloudflare client-side security monitoring. Cloudflare may add a report-only policy and send browser security reports to `https://csp-reporting.cloudflare.com`; therefore the hosted domain is not represented as having zero external provider reporting. Browser release checks explicitly record only standard CSP-report POSTs to that exact provider origin and continue to reject every other unexpected origin. Known report-only console warnings for the bundled script/data/audio are recorded separately only when the document's observed response headers verify that Cloudflare reporting policy. Enforced CSP failures and other application console errors still fail acceptance. The application bundles no analytics or private-service endpoints. No zone-wide security monitoring is disabled by this project.
+Use the book menu to export a local JSON backup containing the original EPUB, reading settings/progress and bookmarks. Restore it using the library's backup control. Originals can also be downloaded from reader settings. Deletion removes this browser's book, files, bookmarks and progress. Keep external backups: browser cleanup, private browsing, storage pressure or device management may erase local storage. The optional persistence request is controlled by the browser and is not a durability promise. This site does not install a service worker or promise app-shell availability offline.
 
-## Try it locally
+## One licensed audio sample
 
-Node.js 22+:
+The included original book, **The Signal Room**, has a bundled Kokoro Michael neural recording of its opening paragraph. Headphones start/stop listening, with one mini-player, expanded controls, pause/resume, ±15 seconds, playback speeds through 2×, progress, a sleep timer and excerpt-level highlighting. There is no autoplay. Its full generation/license provenance is [documented](docs/audio-provenance.md).
+
+Imported EPUBs have **no server narration**. Andrew Neural TTS, automatic webnovel importing and cloud synchronization are unavailable and are clearly identified in the persistent **Browser Reader Mode** notice. The app never silently sends book text to a speech service or connects to the private installation.
+
+## EPUB safety and compatibility
+
+- Maximum 20 MiB compressed EPUB, 8 MiB per extracted member, 64 MiB total expansion, 10,000 ZIP entries and 5,000 spine sections; maximum 100 imported books and 100 MiB local-library accounting budget. Browser quotas can be lower.
+- ZIP directory/local-header consistency, unsafe/duplicate paths, symlinks, encryption, unsupported compression, expansion bounds, CRC and extraction timeout checks. ZIP64/multipart/DRM archives are rejected. Extraction is isolated in a terminable worker.
+- EPUB 2/3 package/spine handling, EPUB 3 navigation and EPUB 2 NCX. Chapter XML is parsed inertly on demand; external DTD declarations are discarded without resolving, and entity/internal-subset declarations are rejected. Active element names, event handlers and resource attributes are made inert before native XML parsing, then a DOM allowlist reconstructs safe chapter content.
+- Only allowlisted structural XHTML survives. Publication scripts, event handlers, forms, frames, SVG, executable URLs, publisher CSS, remote fonts/resources and media are removed. Safe bounded PNG/JPEG/GIF images use browser-local Blob URLs. No external book resource requests are permitted.
+- The real reader frame retains same-origin parent navigation and the WebKit gesture compatibility sandbox setting, but its first-head CSP explicitly sets `script-src 'none'`, `default-src 'none'`, Blob-only images, no base URLs and no forms. Both sanitization and native script-blocking tests are required; sandbox tokens alone are not treated as protection.
+- This edition is a reflowable text reader. Complex fixed-layout publications, publisher typography, embedded scripts/media, SVG/WebP illustrations, DRM, malformed/non-UTF-8 XML and oversized books may be unsupported or simplified. Without navigation labels, sections use numbered fallback titles. Original files remain unmodified and exportable.
+
+## Build and verify
+
+Node 22+; dependencies are pinned/locked. No runtime secrets or backend configuration.
 
 ```sh
 npm ci
 npm run verify
-npm run dev
+npx playwright install webkit chromium
+node scripts/check-browsers.mjs
 ```
 
-Open the loopback preview reported by the server. Production files are in `dist/`. Runtime has no package dependencies; development dependencies are only for browser verification. The HTTP-only local preview omits CSP's HTTPS-upgrade directive; the deployed `_headers` retains it.
+Browser acceptance uses Windows Playwright WebKit/iPhone-like viewports and Chromium. It imports real generated original-fiction EPUB archives, including hostile content and a 3,001-chapter book. It verifies native trusted touch, reading position/themes/bookmarks/reload, local backup/delete/restore, no upload/API/private/external-content traffic, native CSP script blocking, archive limits, storage failure, actual list geometry/virtualization, sample audio and accessibility. No homelab browser is needed. Synthetic fixtures contain no copyrighted novel content.
 
-## Verification
+All runtime scripts/styles/media are content-addressed. Both HTML entry points revalidate; hashed resources are immutable. `asset-manifest.json` records full SHA-256/byte lengths. Deployments must match the exact tested manifest, then pass acceptance on the actual public domain, not just a local preview. Existing public Pages deployments/history remain available for rollback; local browser data must not be reset as part of a code rollback.
 
-```sh
-npx playwright install chromium webkit
-npm run test:browser
-```
+## Hosting privacy distinction
 
-Start the preview first. Browser checks cover five widths, WebKit protocol-dispatched trusted touch input, pagination, chapter transitions, typography, themes, reload recovery, native neural playback, headphones ON/OFF, pause/resume, ±15-second seeking, 2× playback, explicit sample boundaries, completion/replay, importer preview, and reset. Network interception rejects unexpected origins; the existing custom-domain provider's standard CSP reports are recorded separately. Request-failure receipts omit signed URL queries and distinguish application traffic from hosting reports, including any provider DNS delivery failures. `DEMO_URL` can target the deployed static site. Browser receipts and screenshots go to ignored `test-results/`. The separate cache suite uses real browser caching and protocol-level cache bypass for hard reloads, checking the actual script/style/data response bytes and audio in both engines.
+The app contains no analytics or private-service endpoint. The custom domain preserves its existing Cloudflare security monitoring, which can emit report-only CSP warnings and standard security-report POSTs to `https://csp-reporting.cloudflare.com`. Existing NEL/reporting headers may also be present. This is not a promise of zero hosting-provider reporting or access logs. Release receipts distinguish verified hosting policy/delivery diagnostics from application errors; unexpected origins, uploads, HTTP API calls and enforced CSP failures still fail acceptance. No zone-wide security setting is disabled for this project.
 
-Acceptance runs locally on Windows with both WebKit and Chromium. Tests use mobile emulation, not physical iPhone hardware. Hosted Windows Server WebKit stalled before navigation in observed CI runs, so hosted CI retains the same assertions across Windows Chromium and macOS WebKit. No browsers run on the private Ubuntu server. The manual Public release verification workflow checks deployed bytes and the public site from hosted machines outside the homelab. Tests complement visual review; they are not hardware or accessibility certification.
+## Source and licenses
 
-## Audio and content
-
-`public/assets/signal-room.mp3` is a pre-generated Michael/Kokoro neural reading of the original opening excerpt, not the production Andrew voice. It is a 25.7-second, 96 kbit/s mono MP3 (about 310 kB) generated locally with Apache-licensed tools/model and bundled statically. No production worker, paid speech API, browser speech synthesis, or live generation is used. [Audio provenance and license review](docs/audio-provenance.md) records the exact model, voice and recording hashes, redistribution basis, review evidence and timing limits. Highlighting follows the recorded paragraph, not fabricated word timings.
-
-Original demo code, stories, cover artwork, and the original recording are distributed under the accompanying MIT license. Browser-testing dependencies retain their own licenses.
-
-## Deployment
-
-Cloudflare Pages: production branch `main`, build command `npm run verify`, output `dist`, Node.js 24. No environment secrets or runtime bindings are needed. Verify the deployed commit, HTTPS, security headers, exact assets, and browser/network checks before linking a release. Retain a previous Pages deployment for rollback. Never point this project at the private application or publish private source, books, configuration, or caches.
-
-The deterministic build replaces source asset paths with SHA-256-fingerprinted filenames, including JavaScript, CSS, the data module, SVGs and MP3. Dependencies are rewritten before their importing script is hashed. HTML revalidates; fingerprinted assets are immutable. The generated manifest records exact bytes and hashes, and deployment checks compare all referenced files against that tested build. Windows and hosted builds normalize text line endings identically. Old edge/browser cache entries cannot masquerade as a new filename. No zone-wide cache policy changes are required; prior deployment artifacts remain available for rollback.
+Only the separately audited browser repository is public. The original production repository remains private. See [THIRD_PARTY.md](THIRD_PARTY.md), the retained MIT license, exact frontend provenance and audio/fflate license notices. No production databases, caches, books, service credentials, internal network configuration or backend/container dependencies are published.
