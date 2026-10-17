@@ -284,6 +284,17 @@ async function swipe(p, name, direction) {
         if (width === 390) {
           await p.goto(origin + "/reader.html#book=signal&section=1");
           await ready(p);
+          await p.locator("audio").evaluate((audio) => {
+            window.audioTrace = [];
+            const record = (event) => {
+              window.audioTrace.push({event, at: performance.now(), time: audio.currentTime, duration: audio.duration, paused: audio.paused, ended: audio.ended, seeking: audio.seeking});
+              if (window.audioTrace.length > 80) window.audioTrace.shift();
+            };
+            for (const name of ["loadedmetadata", "playing", "pause", "seeking", "seeked", "ended", "error"])
+              audio.addEventListener(name, () => record(name));
+            const pause = audio.pause.bind(audio);
+            audio.pause = () => { record("JS pause: " + new Error().stack); return pause(); };
+          });
           assert(
             await p
               .locator("#sampleAudio")
@@ -342,7 +353,9 @@ async function swipe(p, name, direction) {
           );
           await p.locator("#closeAudio").click();
           await p.locator("#dockContents").click();
-          assert(await p.locator("audio").evaluate((a) => !a.paused));
+          const contentsPlaying = await p.locator("audio").evaluate((a) => !a.paused);
+          if (!contentsPlaying) console.error("Contents audio failure", await p.evaluate(() => ({trace: window.audioTrace, current: {time: document.querySelector("audio").currentTime, duration: document.querySelector("audio").duration, paused: document.querySelector("audio").paused, ended: document.querySelector("audio").ended}})));
+          assert(contentsPlaying, "Contents must not interrupt playing sample");
           await p.locator("#closeContents").click();
           for (let i = 0; i < 3; i++) {
             await p.locator("#dockListen").click();
