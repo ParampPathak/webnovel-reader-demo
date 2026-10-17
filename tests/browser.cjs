@@ -330,11 +330,31 @@ async function swipe(p, name, direction) {
           await p.locator("#closeContents").click();
           for (let i = 0; i < 3; i++) {
             await p.locator("#dockListen").click();
-            assert(!(await p.locator("#readerMini").isVisible()));
+            try {
+              await expect(p.locator("#readerMini")).toBeHidden();
+              await expect(p.locator("#dockListen")).toHaveAttribute(
+                "data-playing",
+                "false",
+              );
+              assert(await p.locator("audio").evaluate((a) => a.paused));
+            } catch (error) {
+              console.error("Headphone OFF state", await p.evaluate(() => ({
+                miniHidden: document.querySelector("#readerMini").hidden,
+                engaged: document.body.dataset.audioEngaged,
+                icon: document.querySelector("#dockListen").dataset.playing,
+                paused: document.querySelector("audio").paused,
+                ended: document.querySelector("audio").ended,
+                time: document.querySelector("audio").currentTime,
+              })));
+              throw error;
+            }
             await p.locator("#dockListen").click();
-            await p.waitForFunction(
-              () => !document.querySelector("audio").paused,
+            // paused=false can precede the native playing event / play promise.
+            await expect(p.locator("#dockListen")).toHaveAttribute(
+              "data-playing",
+              "true",
             );
+            await expect(p.locator("#readerMini")).toBeVisible();
           }
           await p.locator("#dockListen").click();
           assert(await p.locator("audio").evaluate((a) => a.paused));
