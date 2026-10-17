@@ -313,6 +313,8 @@ async function swipe(p, name, direction) {
             "data-playing",
             "true",
           );
+          await expect(p.locator("#readerMiniState")).toHaveText("");
+          await expect(p.frameLocator("#readingFrame").locator("[data-narration-mark]").first()).toBeVisible();
           assert(await p.locator("#readerMini").isVisible());
           await p.locator("#readerMiniExpand").click();
           await p.locator("#audioSpeed").selectOption("2");
@@ -424,9 +426,11 @@ async function swipe(p, name, direction) {
             window.nativeAudioPlay = audio.play.bind(audio);
             const gate = new Promise((resolve) => window.releaseFirstPlay = resolve);
             window.playCalls = 0;
-            audio.play = async () => {
-              await window.nativeAudioPlay();
-              if (++window.playCalls === 1) await gate;
+            audio.play = () => {
+              const playback = window.nativeAudioPlay();
+              return ++window.playCalls === 1
+                ? Promise.resolve(playback).then(() => gate)
+                : playback;
             };
           });
           await p.locator("#dockListen").click();

@@ -79,6 +79,34 @@
         });
     return prepared;
   }
+  let cancelStart = null;
+  function nativePlay() {
+    if (!audio.paused && !audio.ended && audio.readyState >= 3)
+      return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const finish = (error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        audio.removeEventListener("playing", started);
+        audio.removeEventListener("error", failed);
+        if (cancelStart === cancel) cancelStart = null;
+        error ? reject(error) : resolve();
+      };
+      const started = () => { if (!audio.paused && !audio.ended) finish(); };
+      const failed = () => finish(audio.error || Error("Recording playback failed."));
+      const cancel = () => finish();
+      const timer = setTimeout(() => finish(Error("Recording did not start.")), 15000);
+      cancelStart = cancel;
+      audio.addEventListener("playing", started);
+      audio.addEventListener("error", failed);
+      // Some WebKit builds emit playing but leave play() pending indefinitely.
+      // Native playing is the readiness signal; still handle every rejection.
+      try { Promise.resolve(audio.play()).catch(finish); }
+      catch (error) { finish(error); }
+    });
+  }
   async function play() {
     if (
       bookId !== "signal" ||
@@ -92,6 +120,7 @@
       );
     }
     const request = ++generation;
+    cancelStart?.();
     engaged = true;
     starting = true;
     $("audioMessage").textContent = "Loading bundled neural narration…";
@@ -104,13 +133,13 @@
         audio.load();
       }
       try {
-        await audio.play();
+        await nativePlay();
       } catch (e) {
         if (request !== generation) return;
         if (!blob || audio.error?.code !== 4) throw e;
         blob = false;
         audio.src = "/assets/signal-room.mp3";
-        await audio.play();
+        await nativePlay();
       }
       if (request !== generation) {
         // A canceled request must never pause a newer engaged session.
@@ -136,6 +165,7 @@
   }
   function stop() {
     ++generation;
+    cancelStart?.();
     starting = false;
     engaged = false;
     audio.pause();
