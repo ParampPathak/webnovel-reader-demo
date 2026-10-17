@@ -6,7 +6,7 @@ A browser-only adaptation of the real Webnovel Reader frontend: the actual compa
 
 ## Read your own EPUBs, locally
 
-Choose **Import EPUB locally**. ZIP parsing happens in a local worker; book files and progress are stored in IndexedDB on this browser profile. Nothing is uploaded to a book server, Flask API, TTS worker or cloud library. Book navigation identifiers stay in URL fragments, not HTTP query strings. There are no accounts or cross-device synchronization. Other people using the same browser profile can access that profile's library; this is device-local storage, not an account isolation system.
+Choose **Import EPUB** and select a file from your device; it imports once, automatically. ZIP parsing happens in a local worker; book files and progress are stored in IndexedDB on this browser profile. Nothing is uploaded to a book server, Flask API, TTS worker or cloud library. Book navigation identifiers stay in URL fragments, not HTTP query strings. There are no accounts or cross-device synchronization. Other people using the same browser profile can access that profile's library; this is device-local storage, not an account isolation system.
 
 Use the book menu to export a local JSON backup containing the original EPUB, reading settings/progress and bookmarks. Restore it using the library's backup control. Originals can also be downloaded from reader settings. Deletion removes this browser's book, files, bookmarks and progress. Keep external backups: browser cleanup, private browsing, storage pressure or device management may erase local storage. The optional persistence request is controlled by the browser and is not a durability promise. This site does not install a service worker or promise app-shell availability offline.
 
@@ -14,7 +14,7 @@ Use the book menu to export a local JSON backup containing the original EPUB, re
 
 The included original book, **The Signal Room**, has a bundled Kokoro Michael neural recording of its opening paragraph. Headphones start/stop listening, with one mini-player, expanded controls, pause/resume, ±15 seconds, playback speeds through 2×, progress, a sleep timer and excerpt-level highlighting. There is no autoplay. Its full generation/license provenance is [documented](docs/audio-provenance.md).
 
-Imported EPUBs have **no server narration**. Andrew Neural TTS, automatic webnovel importing and cloud synchronization are unavailable and are clearly identified in the persistent **Browser Reader Mode** notice. The app never silently sends book text to a speech service or connects to the private installation.
+Imported EPUBs are **reading only**. Live audiobook generation, online novel importing and cross-device syncing are unavailable. The persistent **Browser Reader Mode** notice keeps local-storage and backup guidance visible, with expandable capability and hosting details. The app never silently sends book text to a speech service or connects to the private installation.
 
 ## EPUB safety and compatibility
 
@@ -37,6 +37,8 @@ node scripts/check-browsers.mjs
 ```
 
 Browser acceptance uses Windows Playwright WebKit/iPhone-like viewports and Chromium. It imports real generated original-fiction EPUB archives, including hostile content and a 3,001-chapter book. It verifies native trusted touch, reading position/themes/bookmarks/reload, local backup/delete/restore, no upload/API/private/external-content traffic, native CSP script blocking, archive limits, storage failure, actual list geometry/virtualization, sample audio and accessibility. No homelab browser is needed. Synthetic fixtures contain no copyrighted novel content.
+
+The focused library suite (`npm run test:polish`) checks 320/375/390/768/1280/1920px layouts, a real device file-picker interaction, duplicate imports, Unicode/long metadata, missing authors/covers, keyboard menus, filters/favorites, 50 imported/sample books across three pages and deletion of the final page's last item. It also verifies genuine Chromium 200% browser zoom using an isolated temporary profile, and captures real library, import, reader-theme and playing-audio screenshots. Pagination appears only when more than 24 matching books exist.
 
 All runtime scripts/styles/media are content-addressed. Both HTML entry points revalidate; hashed resources are immutable. `asset-manifest.json` records full SHA-256/byte lengths. Deployments must match the exact tested manifest, then pass acceptance on the actual public domain, not just a local preview. Existing public Pages deployments/history remain available for rollback; local browser data must not be reset as part of a code rollback.
 

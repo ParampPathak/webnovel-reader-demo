@@ -43,6 +43,7 @@ try {
     "tests/browser.cjs",
     "tests/cache.cjs",
     "tests/accessibility.cjs",
+    "tests/polish.cjs",
   ]) {
     await new Promise((resolve, reject) => {
       const child = spawn(process.execPath, [script], {

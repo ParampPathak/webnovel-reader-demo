@@ -30,7 +30,6 @@ async function importBook(p, bytes, name = "local.epub") {
     mimeType: "application/epub+zip",
     buffer: Buffer.from(bytes),
   });
-  await p.locator("#uploadForm button").click();
   await expect(p.locator("#uploadStatus")).toContainText(
     /Book added|already in your library/,
     { timeout: 30000 },
@@ -632,7 +631,6 @@ async function swipe(p, name, direction) {
               mimeType: "application/epub+zip",
               buffer: Buffer.from(bytes),
             });
-            await p.locator("#uploadForm button").click();
             await expect(p.locator("#uploadStatus")).toContainText(message);
             await expect(p.locator(".book-card")).toHaveCount(2);
           }
@@ -664,7 +662,6 @@ async function swipe(p, name, direction) {
             mimeType: "application/epub+zip",
             buffer: Buffer.from(epub({ title: "Quota Test" })),
           });
-          await p.locator("#uploadForm button").click();
           await expect(p.locator("#uploadStatus")).toContainText(
             "no partial book",
           );

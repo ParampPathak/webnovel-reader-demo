@@ -4,10 +4,10 @@ const { webkit, chromium } = require("@playwright/test"),
   fs = require("fs");
 const origin = process.env.DEMO_URL || "http://127.0.0.1:34341";
 (async () => {
-  const browser = await (
-    process.env.BROWSER_ENGINE === "chromium" ? chromium : webkit
-  ).launch();
   const passed = [];
+  for (const [name, engine] of Object.entries({ webkit, chromium })) {
+  if (process.env.BROWSER_ENGINE && process.env.BROWSER_ENGINE !== name) continue;
+  const browser = await engine.launch();
   try {
     const context = await browser.newContext({
       viewport: { width: 390, height: 844 },
@@ -32,7 +32,7 @@ const origin = process.env.DEMO_URL || "http://127.0.0.1:34341";
         [],
         name,
       );
-      passed.push(name);
+      passed.push(`${engine.name()}: ${name}`);
     }
     await p.goto(origin);
     await p.locator(".book-title").waitFor();
@@ -53,14 +53,15 @@ const origin = process.env.DEMO_URL || "http://127.0.0.1:34341";
     await p.locator("#readerMiniExpand").click();
     await check("sample player");
     await p.locator("#audioStop").click();
-    fs.writeFileSync(
+  } finally {
+    await browser.close();
+  }
+  }
+  fs.writeFileSync(
       "test-results/accessibility.json",
       JSON.stringify({ origin, passed }, null, 2),
     );
     console.log("PASS axe", passed);
-  } finally {
-    await browser.close();
-  }
 })().catch((e) => {
   console.error(e);
   process.exitCode = 1;

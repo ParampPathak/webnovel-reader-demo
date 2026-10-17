@@ -41,6 +41,7 @@ async function loadBooks() {
     const data = await api(`/api/books?limit=${limit}&offset=${offset}&q=${encodeURIComponent($('bookSearch').value)}&sort=${$('librarySort').value}&favorite=${$('favoritesOnly').checked?'1':'0'}&kind=${$('bookKind').value}&archived=${$('removedBooks').checked?'1':'0'}`);
     if (token !== requestSequence) return;
     total = data.total;
+    if (offset && offset >= total) { offset = Math.max(0, Math.floor((total - 1) / limit) * limit); return loadBooks(); }
     closeBookMenu(false);$('books').replaceChildren();
     for (const book of data.items) {
       const card = element('article', 'book-card');
@@ -54,8 +55,10 @@ async function loadBooks() {
         cover.append(image);
       } else cover.append(element('span', 'cover-fallback', 'No artwork'));
       const info = element('div', 'book-card-content');
-      const title=element('a','book-title',book.title);title.href=`/reader.html#book=${book.id}`;info.append(element('h3', '', ''), element('p', 'muted', book.author || 'Unknown author'),
-        element('p', 'muted', `${book.section_count.toLocaleString()} sections · ${book.sample ? 'Included sample' : 'EPUB'}`));
+      const title=element('a','book-title',book.title);title.href=`/reader.html#book=${book.id}`;title.title=book.title;
+      const author=element('p','muted book-author',book.author || 'Unknown author');author.title=author.textContent;
+      info.append(element('h3', '', ''), author,
+        element('p', 'muted book-details', `${book.section_count.toLocaleString()} sections · ${book.sample ? 'Audiobook sample' : 'EPUB · Reading only'}`));
       info.children[0].append(title);
       if(book.section_id&&book.section_count){const progress=element('progress','book-progress');progress.max=1;progress.value=Math.min(1,(Number(book.reading_position||0)+Number(book.fraction||0))/book.section_count);progress.setAttribute('aria-label','Reading progress');info.append(progress,element('p','muted',progress.value>=.999?(book.source_kind==='epub'?'Last page reached':'Last imported page'):'In progress · '+Math.round(progress.value*100)+'%'));}
       const read = element('a', 'read-link', 'Open reader');
@@ -71,7 +74,8 @@ async function loadBooks() {
       card.append(cover,menu,info);$('books').append(card);
     }
     $('bookCount').textContent = `(${total})`;
-    $('libraryStatus').textContent = total ? '' : $('removedBooks').checked?'No removed books.':'No matching books. Upload an EPUB or adjust your filters.';
+    $('libraryStatus').textContent = total ? '' : $('removedBooks').checked?'No removed books.':'No matching books. Import an EPUB or adjust your filters.';
+    $('libraryPagination').hidden = total <= limit;
     $('pageInfo').textContent = total ? `${offset + 1}–${Math.min(offset + limit, total)} of ${total}` : '0 books';
     $('previousPage').disabled = offset === 0;
     $('nextPage').disabled = offset + limit >= total;
@@ -81,14 +85,17 @@ $('uploadForm').addEventListener('submit', async event => {
   event.preventDefault();
   const form = event.currentTarget;
   const button = form.querySelector('button');
+  if (button.disabled || !$('epubFile').files.length) return;
   button.disabled = true; $('uploadStatus').textContent = 'Importing your book…';
   try {
     const result = await api('/api/books/upload', {method: 'POST', body: new FormData(form)});
     $('uploadStatus').textContent = result.created ? 'Book added. Ready to read.' : 'This EPUB is already in your library.';
     form.reset(); offset = 0; await loadBooks();
   } catch (error) { $('uploadStatus').textContent = error.message; }
-  finally { button.disabled = false; }
+  finally { button.disabled = false; $('epubFile').value = ''; }
 });
+$('importEpub').onclick = () => $('epubFile').click();
+$('epubFile').onchange = () => { if ($('epubFile').files.length) $('uploadForm').requestSubmit(); };
 let searchTimer;
 $('bookSearch').addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(() => {offset = 0; loadBooks();}, 250); });
 $('previousPage').onclick = () => {offset = Math.max(0, offset - limit); loadBooks();};

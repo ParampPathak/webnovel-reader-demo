@@ -10,6 +10,7 @@
     "test:browser": "node tests/browser.cjs",
     "test:cache": "node tests/cache.cjs",
     "test:accessibility": "node tests/accessibility.cjs",
+    "test:polish": "node tests/polish.cjs",
     "verify": "npm run build && npm test"
   },
   "engines": {

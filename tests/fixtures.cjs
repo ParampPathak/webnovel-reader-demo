@@ -38,6 +38,8 @@ function epub({
   attack = false,
   extra = {},
   title = "Local Lighthouse",
+  author = "Original QA Fiction",
+  cover = true,
   navVersion = 3,
 } = {}) {
   const files = {
@@ -46,10 +48,11 @@ function epub({
       '<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/book.opf" media-type="application/oebps-package+xml"/></rootfiles></container>',
     ),
   };
-  files["OEBPS/picture.png"] = picture();
-  const manifest = [
+  const escape = (s) => String(s).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+  if (cover) files["OEBPS/picture.png"] = picture();
+  const manifest = cover ? [
       '<item id="cover" href="picture.png" media-type="image/png" properties="cover-image"/>',
-    ],
+    ] : [],
     spine = [];
   for (let i = 1; i <= chapters; i++) {
     manifest.push(
@@ -61,9 +64,9 @@ function epub({
     );
   }
   files["OEBPS/book.opf"] = strToU8(
-    `<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="id"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="id">synthetic-test</dc:identifier><dc:title>${title}</dc:title><dc:creator>Original QA Fiction</dc:creator></metadata><manifest>${manifest.join("")}</manifest><spine>${spine.join("")}</spine></package>`,
+    `<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="id"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="id">synthetic-test</dc:identifier><dc:title>${escape(title)}</dc:title>${author ? `<dc:creator>${escape(author)}</dc:creator>` : ''}</metadata><manifest>${manifest.join("")}</manifest><spine>${spine.join("")}</spine></package>`,
   );
-  for (let i = 1; i <= chapters; i++)
+  for (let i = 1; cover && i <= chapters; i++)
     files[`OEBPS/c${i}.xhtml`] = strToU8(
       new TextDecoder()
         .decode(files[`OEBPS/c${i}.xhtml`])
