@@ -15,8 +15,9 @@ const result = {
   layoutReadiness: [],
 };
 fs.mkdirSync("test-results", { recursive: true });
-const ready = async (p) => {
-  await p.waitForFunction(() => window.ReaderNarration?.page().ready);
+const ready = (p) => p.waitForFunction(() => window.ReaderNarration?.page().ready);
+const settledPagination = async (p) => {
+  await ready(p);
   const geometry = () => {
     const d = document.querySelector('#readingFrame').contentDocument;
     return { width: d.documentElement.clientWidth, height: d.documentElement.clientHeight,
@@ -264,6 +265,7 @@ async function swipe(p, name, direction) {
           assert(await p.locator("audio").evaluate((a) => a.paused));
           pass(`${name} ${width}: fresh library-to-reader native startup clears loading, highlights excerpt and stops cleanly`);
         }
+        await settledPagination(p);
         const first = await p.locator("#readingStatus").textContent();
         await swipe(p, name, 1);
         await expect(p.locator("#readingStatus")).not.toHaveText(first);
