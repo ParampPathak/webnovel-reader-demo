@@ -8,9 +8,9 @@ const origin = process.env.DEMO_URL || 'http://127.0.0.1:4330';
 const result = { origin, passed: [], measurements: [], errors: [], providerReports: [] };
 fs.mkdirSync('test-results', { recursive: true });
 const pass = s => { result.passed.push(s); console.log('PASS', s); };
-async function shot(p, name) {
+async function shot(p, name, fullPage = true) {
   await p.locator('.book-cover img').evaluateAll(images => Promise.all(images.map(i => i.decode().catch(() => {}))));
-  await p.screenshot({ path: `test-results/polish-${name}.png`, fullPage: true });
+  await p.screenshot({ path: `test-results/polish-${name}.png`, fullPage });
 }
 async function contained(p, selectors) {
   const measurements = await p.locator(selectors).evaluateAll(nodes => nodes.filter(n => n.getClientRects().length).map(n => {
@@ -227,7 +227,9 @@ async function axe(p, name) {
       const z=await p.evaluate(()=>({innerWidth,devicePixelRatio,cssZoom:getComputedStyle(document.body).zoom}));
       assert.equal(z.innerWidth,640); assert.equal(z.devicePixelRatio,2); assert.equal(z.cssZoom,'1');
       await contained(p,'.topbar a, .upload-card, .action-row select, .book-card');
-      await shot(p,'chromium-native-zoom200-library');
+      // Full-page capture uses layout CSS width at native zoom and crops the
+      // physical screenshot; viewport capture preserves the real 1280px view.
+      await shot(p,'chromium-native-zoom200-library',false);
       await p.locator('.book-title').click();
       await p.waitForFunction(()=>window.ReaderNarration?.page().ready);
       await contained(p,'.reader-footer, .reader-dock button');
@@ -235,7 +237,7 @@ async function axe(p, name) {
       const frame=await p.locator('#readingFrame').boundingBox();
       await p.mouse.click(frame.x+frame.width*.9,frame.y+frame.height*.5);
       await expect(p.locator('#readingStatus')).not.toHaveText(before);
-      await shot(p,'chromium-native-zoom200-reader');
+      await shot(p,'chromium-native-zoom200-reader',false);
       result.measurements.push({nativeZoom:z});
       pass('chromium: actual 200% browser zoom reflows library/header/reader with working navigation');
     } finally {await c.close();}
