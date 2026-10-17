@@ -106,13 +106,15 @@
       try {
         await audio.play();
       } catch (e) {
+        if (request !== generation) return;
         if (!blob || audio.error?.code !== 4) throw e;
         blob = false;
         audio.src = "/assets/signal-room.mp3";
         await audio.play();
       }
       if (request !== generation) {
-        audio.pause();
+        // A canceled request must never pause a newer engaged session.
+        if (!engaged) audio.pause();
         return;
       }
       $("audioMessage").textContent = "";

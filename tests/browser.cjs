@@ -282,6 +282,7 @@ async function swipe(p, name, direction) {
           `${name} ${width}: actual library/reader, trusted touch swipe both directions, tap, page/anchor reload, themes/settings and bookmark`,
         );
         if (width === 390) {
+          try {
           await p.goto(origin + "/reader.html#book=signal&section=1");
           await ready(p);
           await p.locator("audio").evaluate((audio) => {
@@ -419,6 +420,35 @@ async function swipe(p, name, direction) {
           pass(
             `${name}: native licensed neural playback, pause/resume, headphones, single mini-player, ±15s, 2x and Contents without interruption`,
           );
+          await p.locator("audio").evaluate((audio) => {
+            window.nativeAudioPlay = audio.play.bind(audio);
+            const gate = new Promise((resolve) => window.releaseFirstPlay = resolve);
+            window.playCalls = 0;
+            audio.play = async () => {
+              await window.nativeAudioPlay();
+              if (++window.playCalls === 1) await gate;
+            };
+          });
+          await p.locator("#dockListen").click();
+          await p.waitForFunction(() => window.playCalls === 1);
+          await p.locator("#readerMiniExpand").click();
+          await p.locator("#audioPlay").click();
+          await expect(p.locator("#audioPlay")).toHaveText("Play sample");
+          await p.locator("#audioPlay").click();
+          await p.waitForFunction(() => window.playCalls === 2 && !document.querySelector("audio").paused);
+          const newerTime = await p.locator("audio").evaluate((a) => a.currentTime);
+          await p.evaluate(() => window.releaseFirstPlay());
+          await p.waitForTimeout(150);
+          assert(await p.locator("audio").evaluate((a) => !a.paused), "Older play completion must not pause newer playback");
+          await p.waitForFunction((time) => !document.querySelector("audio").paused && document.querySelector("audio").currentTime > time, newerTime);
+          await p.locator("audio").evaluate((audio) => {audio.play = window.nativeAudioPlay;});
+          await p.locator("#closeAudio").click();
+          await p.locator("#dockListen").click();
+          pass(`${name}: delayed old native Play completion cannot stop a newer playing session`);
+          } catch (error) {
+            console.error("Native audio failure", JSON.stringify(await p.evaluate(() => ({trace: window.audioTrace, current: {time: document.querySelector("audio")?.currentTime, duration: document.querySelector("audio")?.duration, paused: document.querySelector("audio")?.paused, ended: document.querySelector("audio")?.ended}})).catch(() => null)));
+            throw error;
+          }
           await p.goto(origin);
           const importedArchive = epub({ attack: true });
           await importBook(p, importedArchive);
