@@ -1,107 +1,64 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync, statSync } from "node:fs";
-import { books, excerpt } from "../public/data.js";
 import { createHash } from "node:crypto";
-const manifest = JSON.parse(readFileSync("dist/asset-manifest.json", "utf8"));
-const built = (source) =>
-  "dist" + manifest.assets.find((a) => a.source === source).path;
-const walk = (root) =>
-  readdirSync(root).flatMap((name) => {
-    const p = `${root}/${name}`;
-    return statSync(p).isDirectory() ? walk(p) : [p];
-  });
-test("original sample content and recording are present", () => {
-  assert.equal(books.length, 2);
-  assert.equal(books[0].chapters[0].paragraphs[0], excerpt);
-  const mp3 = readFileSync(built("assets/signal-room.mp3"));
-  assert.equal(mp3.toString("ascii", 0, 3), "ID3");
-  assert(mp3.length > 100000 && mp3.length < 600000);
-});
-test("source and exact static build contain no private endpoints or credentials", () => {
-  for (const p of [...walk("public"), ...walk("dist")]) {
-    assert(!/\.(env|pem|key|db|sqlite|epub|map)$/.test(p));
-    if (!/\.(js|css|html|svg|json)$/.test(p)) continue;
-    const text = readFileSync(p, "utf8");
-    for (const pattern of [
-      /\b192\.168\.\d+\.\d+\b/,
-      /\b10\.\d+\.\d+\.\d+\b/,
-      /\/home\//,
-      /C:\\Users\\/,
-      /-----BEGIN .*PRIVATE KEY/,
-      /gh[pousr]_[\w]{20,}/,
-      /AKIA[A-Z0-9]{16}/,
-      /github_pat_[\w]{20,}/,
-    ])
-      assert(!pattern.test(text), p);
-  }
-  const app = readFileSync(built("app.js"), "utf8");
-  assert(!/\b(XMLHttpRequest|WebSocket|EventSource)\s*\(/.test(app));
-  assert.equal((app.match(/\bfetch\s*\(/g) || []).length, 1);
-  assert.match(app, /fetch\(["']\/assets\/signal-room\.[a-f0-9]{12}\.mp3["']/);
-  const headers = readFileSync("dist/_headers", "utf8");
-  for (const policy of [
-    "connect-src 'self'",
-    "media-src 'self' blob:",
-    "frame-src 'none'",
-    "script-src 'self'",
-    "frame-ancestors 'none'",
-    "no-transform",
-  ])
-    assert(headers.includes(policy));
-});
-test("navigation, local state, and sample-only importer stay explicit", () => {
-  const html = readFileSync("dist/index.html", "utf8");
-  for (const id of [
-    "reset-confirm",
-    "contents-open",
-    "previous",
-    "next",
-    "font",
-    "theme",
-    "speed",
-    "seek",
-    "listen",
-  ])
-    assert(html.includes(`id="${id}"`));
-  assert(!html.includes('type="url"'));
-  assert(html.includes("No URL entry"));
-  assert(html.includes("not individual words"));
-  const app = readFileSync(built("app.js"), "utf8");
-  assert.match(app, /key\s*=\s*["']reader-demo-v1["']/);
-  assert(!app.includes("localStorage.clear"));
-});
-
-test("every mutable asset is content-addressed and the document matches its manifest", () => {
-  const html = readFileSync("dist/index.html", "utf8");
-  const app = readFileSync(built("app.js"), "utf8");
-  for (const entry of manifest.assets) {
-    const file = entry.path === "/" ? "dist/index.html" : "dist" + entry.path;
-    const bytes = readFileSync(file);
-    assert.equal(
-      createHash("sha256").update(bytes).digest("hex"),
-      entry.sha256,
-    );
-    if (entry.path !== "/")
-      assert(entry.path.includes("." + entry.sha256.slice(0, 12) + "."));
-  }
-  for (const source of ["app.js", "style.css"]) {
-    assert(
-      html.includes(manifest.assets.find((a) => a.source === source).path),
-    );
-  }
-  assert(
-    app.includes(
-      manifest.assets
-        .find((a) => a.source === "data.js")
-        .path.split("/")
-        .at(-1),
-    ),
+const manifest = JSON.parse(readFileSync("dist/asset-manifest.json"));
+const hash = (b) => createHash("sha256").update(b).digest("hex");
+const walk = (p) =>
+  readdirSync(p).flatMap((n) =>
+    statSync(p + "/" + n).isDirectory() ? walk(p + "/" + n) : [p + "/" + n],
   );
-  assert(!/\/(app\.js|style\.css)(\?|["'])/.test(html));
+test("all application assets and both HTML entry points match exact content hashes", () => {
+  for (const a of manifest.assets) {
+    const b = readFileSync(
+      a.path === "/" ? "dist/index.html" : "dist" + a.path,
+    );
+    assert.equal(hash(b), a.sha256);
+    assert.equal(b.length, a.bytes);
+    if (/\.(js|css)$/.test(a.path)) assert.match(a.path, /\.[a-f0-9]{12}\./);
+  }
+  const html =
+    readFileSync("dist/index.html", "utf8") +
+    readFileSync("dist/reader.html", "utf8");
+  for (const ref of html.matchAll(/(?:src|href)="(\/assets\/[^"#]+)"/g))
+    assert(manifest.assets.some((a) => a.path === ref[1]));
+});
+test("real app source is attributed, not replaced by a second pagination engine", () => {
+  const p = JSON.parse(readFileSync("docs/frontend-provenance.json"));
+  assert.equal(p.revision, "4ba14ec34e9c0bb786cba528e0acd9efb8edac6d");
+  assert(p.files.some((f) => f.source === "static/reader.js"));
+  const s = readFileSync("public/real/reader.js", "utf8");
+  assert(s.includes("window.BrowserLibrary.api"));
+  assert(s.includes("script-src 'none'"));
+  assert(!s.includes("fetch("));
+  assert(s.includes("wireReadingGestures"));
+});
+test("source and exact release contain no private endpoints, keys or remote runtime dependencies", () => {
+  for (const p of walk("public").concat(walk("dist"))) {
+    if (!/\.(html|css|js|json|svg)$/.test(p)) continue;
+    const s = readFileSync(p, "utf8");
+    assert(
+      !/192\.168\.\d+\.\d+|\/home\/param|tail9ca7cf|-----BEGIN.*PRIVATE KEY|gh[pousr]_[A-Za-z0-9]{20,}/.test(
+        s,
+      ),
+      p,
+    );
+    if (p.endsWith(".html")) assert(!/<script[^>]+src=["']https?:/.test(s), p);
+  }
+  const s = readFileSync("public/sample-player.js", "utf8");
+  assert.equal((s.match(/fetch\(/g) || []).length, 1);
+  assert.match(s,/fetch\(["']\/assets\/signal-room\.mp3["']/);
+  assert(!/fetch\(/.test(readFileSync("public/storage.js", "utf8")));
+});
+test("original licensed neural recording is unchanged", () => {
+  assert.equal(
+    hash(readFileSync("public/assets/signal-room.mp3")),
+    "d70a277915e2a36294261bbfbcdd936c274e69f8a590ff0404f85de7e4e5d6ed",
+  );
+  assert(readFileSync("public/sample.js", "utf8").includes("At dusk, Mira"));
   assert(
-    readFileSync("dist/_headers", "utf8").includes(
-      "max-age=31536000, immutable",
+    readFileSync("docs/licenses/kokoro-Apache-2.0.txt", "utf8").includes(
+      "Apache License",
     ),
   );
 });

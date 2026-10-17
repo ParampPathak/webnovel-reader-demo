@@ -1,0 +1,47 @@
+{
+  "repository": "ParampPathak/Webnovel-Reader",
+  "revision": "4ba14ec34e9c0bb786cba528e0acd9efb8edac6d",
+  "license": "MIT, Copyright (c) 2026 Param Pathak",
+  "files": [
+    {
+      "source": "static/reader.js",
+      "sha256": "dfd7b58351da89f8c84053cdef2002b4c63f9bc9cfefda3f9c3e90a662fa0ed1",
+      "hash_basis": "Git blob at recorded revision"
+    },
+    {
+      "source": "static/library.js",
+      "sha256": "3b881a8f7e6bd7cb17099cda459fcf4bfc714347a18bfb2a5e44c10adfafc890",
+      "hash_basis": "Git blob at recorded revision"
+    },
+    {
+      "source": "static/pagination.js",
+      "sha256": "5adcc1617942c59ee559a2199f45c6aa9eba4ec47e25127226fa10025efc01ee",
+      "hash_basis": "Git blob at recorded revision"
+    },
+    {
+      "source": "static/narration.js",
+      "sha256": "282131848eb4a690dd5215d2661f3973fac263de6fa0209c665266af976c886c",
+      "hash_basis": "Git blob at recorded revision"
+    },
+    {
+      "source": "static/library.css",
+      "sha256": "a6cbd9942c4a11a044811c1b30db64ff40cb9f7d24b7a93249b6f2d407f46617",
+      "hash_basis": "Git blob at recorded revision"
+    },
+    {
+      "source": "static/immersive.css",
+      "sha256": "07fc6c6d1e0cebb1acdc2f6854b895f4fe93247b26fdc2a39c397d8a131163d9",
+      "hash_basis": "Git blob at recorded revision"
+    },
+    {
+      "source": "templates/library.html",
+      "sha256": "98afe0296478b694a13e6a96fc0aeaa780ac86af3e931aede6708a0f34661f49",
+      "hash_basis": "Git blob at recorded revision"
+    },
+    {
+      "source": "templates/reader.html",
+      "sha256": "8841234e693b37edbb0d72ca0b1df501286710863c963dd61bb25888ffcf6593",
+      "hash_basis": "Git blob at recorded revision"
+    }
+  ]
+}

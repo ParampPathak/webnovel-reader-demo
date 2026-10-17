@@ -1,36 +1,51 @@
 import { cp, mkdir, rm, readdir, readFile, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import path from "node:path";
-// Replace only generated output, never source or browser state.
-await rm("dist", { recursive: true, force: true });
-await mkdir("dist", { recursive: true });
-await cp("public", "dist", { recursive: true });
-// Canonical text bytes make Windows and hosted builds identical.
-async function normalize(directory) {
-  for (const entry of await readdir(directory, { withFileTypes: true })) {
-    const file = path.join(directory, entry.name);
-    if (entry.isDirectory()) await normalize(file);
-    else if (/\.(html|js|css|svg|json)$/.test(file))
-      await writeFile(
-        file,
-        (await readFile(file, "utf8")).replace(/\r\n/g, "\n"),
-      );
+const output = path.resolve("dist");
+if (output !== path.join(process.cwd(), "dist"))
+  throw Error("Invalid build target");
+await rm(output, { recursive: true, force: true });
+await cp("public", output, { recursive: true });
+await mkdir("dist/vendor", { recursive: true });
+await cp("node_modules/fflate/umd/index.js", "dist/vendor/fflate.js");
+async function normalize(dir) {
+  for (const e of await readdir(dir, { withFileTypes: true })) {
+    const p = path.join(dir, e.name);
+    if (e.isDirectory()) await normalize(p);
+    else if (e.name === '_headers' || /\.(js|css|html|json|svg)$/.test(p))
+      await writeFile(p, (await readFile(p, "utf8")).replace(/\r\n/g, "\n"));
   }
 }
 await normalize("dist");
-const manifest = { algorithm: "sha256", assets: [] };
-const replacements = new Map();
-const digest = (bytes) => createHash("sha256").update(bytes).digest("hex");
-async function fingerprint(source, contents) {
-  const original = path.join("dist", source);
-  const bytes =
-    contents === undefined ? await readFile(original) : Buffer.from(contents);
-  const sha256 = digest(bytes);
-  const ext = path.extname(source),
-    stem = path.basename(source, ext);
-  const target = `assets/${stem}.${sha256.slice(0, 12)}${ext}`;
+const replacements = new Map(),
+  manifest = { algorithm: "sha256", assets: [] };
+const hash = (b) => createHash("sha256").update(b).digest("hex");
+const applicationLicense = (await readFile("LICENSE", "utf8")).replace(
+  /\r\n/g,
+  "\n",
+);
+const vendorLicense = (
+  await readFile("docs/licenses/fflate-MIT.txt", "utf8")
+).replace(/\r\n/g, "\n");
+function rewrite(text) {
+  for (const [a, b] of replacements) text = text.replaceAll(a, b);
+  return text;
+}
+async function fingerprint(source) {
+  const file = path.join("dist", source),
+    raw = await readFile(file);
+  const bytes = /\.(js|css)$/.test(source)
+    ? Buffer.from(
+        "/*\n" +
+          (source === "vendor/fflate.js" ? vendorLicense : applicationLicense) +
+          "\n*/\n" +
+          rewrite(raw.toString()),
+      )
+    : raw;
+  const sha256 = hash(bytes),
+    target = `assets/${path.basename(source, path.extname(source))}.${sha256.slice(0, 12)}${path.extname(source)}`;
   await writeFile(path.join("dist", target), bytes);
-  await rm(original);
+  await rm(file);
   replacements.set("/" + source, "/" + target);
   manifest.assets.push({
     source,
@@ -38,43 +53,56 @@ async function fingerprint(source, contents) {
     sha256,
     bytes: bytes.length,
   });
-  return "/" + target;
 }
-function rewrite(text) {
-  for (const [source, target] of replacements)
-    text = text.replaceAll(source, target);
-  return text;
+for (const asset of await readdir("dist/assets"))
+  await fingerprint("assets/" + asset);
+for (const source of [
+  "vendor/fflate.js",
+  "sample.js",
+  "epub-worker.js",
+  "epub.js",
+  "storage.js",
+  "real/pagination.js",
+  "real/narration.js",
+  "sample-player.js",
+  "real/reader.js",
+  "real/library.js",
+  "browser-ui.js",
+  "real/library.css",
+  "real/immersive.css",
+  "browser.css",
+])
+  await fingerprint(source);
+for (const html of ["index.html", "reader.html"]) {
+  const bytes = Buffer.from(rewrite(await readFile("dist/" + html, "utf8")));
+  await writeFile("dist/" + html, bytes);
+  manifest.assets.push({
+    source: html,
+    path: html === "index.html" ? "/" : "/reader.html",
+    sha256: hash(bytes),
+    bytes: bytes.length,
+  });
 }
-for (const name of await readdir("dist/assets"))
-  await fingerprint("assets/" + name);
-const dataPath = await fingerprint(
-  "data.js",
-  rewrite(await readFile("dist/data.js", "utf8")),
-);
-let app = await readFile("dist/app.js", "utf8");
-app = app.replace(
-  /\.\/data\.js(?:\?v=[^"']+)?/,
-  "./" + path.basename(dataPath),
-);
-await fingerprint("app.js", rewrite(app));
-await fingerprint("style.css");
-const html = rewrite(
-  (await readFile("dist/index.html", "utf8")).replace(
-    /(\/(?:app\.js|style\.css))\?v=[^"]+/g,
-    "$1",
-  ),
-);
-await writeFile("dist/index.html", html);
-manifest.assets.push({
-  source: "index.html",
-  path: "/",
-  sha256: digest(html),
-  bytes: Buffer.byteLength(html),
-});
+for (const [source, target] of [
+  ["LICENSE", "LICENSE.txt"],
+  ["docs/licenses/fflate-MIT.txt", "fflate-LICENSE.txt"],
+  ["docs/audio-provenance.md", "audio-provenance.txt"],
+]) {
+  const bytes = Buffer.from(
+    (await readFile(source, "utf8")).replace(/\r\n/g, "\n"),
+  );
+  await writeFile("dist/" + target, bytes);
+  manifest.assets.push({
+    source,
+    path: "/" + target,
+    sha256: hash(bytes),
+    bytes: bytes.length,
+  });
+}
 await writeFile(
   "dist/asset-manifest.json",
   JSON.stringify(manifest, null, 2) + "\n",
 );
 console.log(
-  "Static demo built with content-addressed assets. No network or backend build step.",
+  "Browser-only Reader built with local vendor code and content-addressed assets.",
 );

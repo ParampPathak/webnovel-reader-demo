@@ -31,7 +31,9 @@ for (const entry of manifest.assets) {
     assert(receipt.csp.includes("media-src 'self' blob:"));
     assert(response.headers.get("cache-control").includes("no-transform"));
     assert(response.headers.get("cache-control").includes("no-cache"));
-  } else assert(response.headers.get("cache-control").includes("immutable"));
+  } else if (!entry.path.startsWith("/assets/"))
+    assert(response.headers.get("cache-control").includes("no-cache"));
+  else assert(response.headers.get("cache-control").includes("immutable"));
 }
 const manifestResponse = await fetch(new URL("/asset-manifest.json", origin));
 assert.equal(manifestResponse.status, 200);

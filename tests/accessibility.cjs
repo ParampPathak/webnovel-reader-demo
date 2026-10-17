@@ -1,7 +1,8 @@
-const { webkit, chromium } = require("@playwright/test");
-const AxeBuilder = require("@axe-core/playwright").default;
-const assert = require("node:assert/strict");
-const fs = require("node:fs");
+const { webkit, chromium } = require("@playwright/test"),
+  AxeBuilder = require("@axe-core/playwright").default,
+  assert = require("node:assert/strict"),
+  fs = require("fs");
+const origin = process.env.DEMO_URL || "http://127.0.0.1:34341";
 (async () => {
   const browser = await (
     process.env.BROWSER_ENGINE === "chromium" ? chromium : webkit
@@ -14,51 +15,49 @@ const fs = require("node:fs");
       hasTouch: true,
       reducedMotion: "reduce",
     });
-    const page = await context.newPage();
+    const p = await context.newPage();
     async function check(name) {
-      const result = await new AxeBuilder({ page })
+      const a = await new AxeBuilder({ page: p })
         .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
         .analyze();
       assert.deepEqual(
-        result.violations.map((v) => ({
+        a.violations.map((v) => ({
           id: v.id,
-          nodes: v.nodes.map((n) => n.target),
+          impact: v.impact,
+          nodes: v.nodes.map((n) => ({
+            html: n.html,
+            summary: n.failureSummary,
+          })),
         })),
         [],
         name,
       );
       passed.push(name);
     }
-    await page.goto(process.env.DEMO_URL || "http://127.0.0.1:4330");
-    await page.locator(".book-card").first().waitFor();
-    await check("library");
-    await page
-      .getByRole("button", { name: "Open The Signal Room", exact: true })
-      .click();
-    await check("reader");
-    await page.locator("#appearance-open").click();
-    await check("appearance");
-    await page.locator("#theme").selectOption("light");
-    await check("light appearance");
-    await page.locator("#appearance [data-close]").click();
-    await check("light reader");
-    await page.locator("#audio-open").click();
-    await check("audio controls");
-    await page.locator("#audio-dialog [data-close]").click();
-    await page.locator("#contents-open").click();
-    await check("contents");
-    await page.locator("#contents [data-close]").click();
-    await page.locator("#library-back").click();
-    await check("light library");
-    await page.locator("#import-open").click();
-    await page.locator("#discover").click();
-    await check("importer");
-    fs.mkdirSync("test-results", { recursive: true });
+    await p.goto(origin);
+    await p.locator(".book-title").waitFor();
+    await check("actual library and Browser Reader notice");
+    await p.locator(".book-title").click();
+    await p.waitForFunction(() => window.ReaderNarration?.page().ready);
+    await check("actual reader");
+    await p.locator("#dockSettings").click();
+    await check("reader settings");
+    await p.locator("#theme").selectOption("light");
+    await check("light settings");
+    await p.locator("#closeSettings").click();
+    await p.locator("#dockContents").click();
+    await check("full-height contents");
+    await p.locator("#closeContents").click();
+    await p.locator("#dockListen").click();
+    await p.waitForFunction(() => !document.querySelector("audio").paused);
+    await p.locator("#readerMiniExpand").click();
+    await check("sample player");
+    await p.locator("#audioStop").click();
     fs.writeFileSync(
       "test-results/accessibility.json",
-      JSON.stringify({ checks: passed, violations: [] }, null, 2),
+      JSON.stringify({ origin, passed }, null, 2),
     );
-    console.log("PASS axe:", passed.join(", "));
+    console.log("PASS axe", passed);
   } finally {
     await browser.close();
   }

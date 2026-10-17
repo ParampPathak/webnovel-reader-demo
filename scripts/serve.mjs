@@ -32,7 +32,7 @@ http
       const rules = await readFile(path.join(root, "_headers"), "utf8");
       // Production is HTTPS. Only the workstation's HTTP preview omits upgrading.
       let activeRule = false;
-      for (const line of rules.split("\n")) {
+      for (const line of rules.split(/\r?\n/)) {
         if (line.startsWith("/")) {
           activeRule = line.endsWith("*")
             ? url.pathname.startsWith(line.slice(0, -1).trim())
