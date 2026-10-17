@@ -1,5 +1,12 @@
 name: Public release verification
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: Public Reader or exact Cloudflare Pages preview origin
+        required: true
+        default: https://reader.parampathak.com
+        type: string
 permissions:
   contents: read
 jobs:
@@ -15,7 +22,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     env:
-      DEMO_URL: https://reader.parampathak.com
+      DEMO_URL: ${{ inputs.target_url || 'https://reader.parampathak.com' }}
       BROWSER_ENGINE: ${{ matrix.browser }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -23,6 +30,7 @@ jobs:
         with:
           node-version: 24
           cache: npm
+      - run: node scripts/check-release-target.mjs
       - run: npm ci
       - run: npm run verify
       - run: npx playwright install ${{ matrix.browser }}
