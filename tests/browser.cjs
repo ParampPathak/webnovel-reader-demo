@@ -327,6 +327,8 @@ async function swipe(p, name, direction) {
           );
           await expect(p.locator("#readerMiniState")).toHaveText("");
           await expect(p.frameLocator("#readingFrame").locator("[data-narration-mark]").first()).toBeVisible();
+          assert(await p.locator("audio").evaluate((a) => a.duration > 25));
+          assert.equal(await p.locator("audio").evaluate((a) => a.currentSrc.startsWith("blob:")), name !== "webkit", "WebKit must use stable native-file seeking; Chromium uses its full-buffer Blob");
           assert(await p.locator("#readerMini").isVisible());
           await p.locator("#readerMiniExpand").click();
           await p.locator("#audioSpeed").selectOption("2");
@@ -371,6 +373,7 @@ async function swipe(p, name, direction) {
           const contentsPlaying = await p.locator("audio").evaluate((a) => !a.paused);
           if (!contentsPlaying) console.error("Contents audio failure", await p.evaluate(() => ({trace: window.audioTrace, current: {time: document.querySelector("audio").currentTime, duration: document.querySelector("audio").duration, paused: document.querySelector("audio").paused, ended: document.querySelector("audio").ended}})));
           assert(contentsPlaying, "Contents must not interrupt playing sample");
+          assert(await p.locator("audio").evaluate((a) => a.duration > 25), "Rapid seeking must not truncate the recording duration");
           await p.locator("#closeContents").click();
           for (let i = 0; i < 3; i++) {
             await p.locator("#dockListen").click();

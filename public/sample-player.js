@@ -18,7 +18,10 @@
     starting = false,
     completed = false,
     prepared = null,
-    blob = true,
+    // WebKit can truncate a Blob MP3's duration after rapid seeks. Its native
+    // same-origin file path is stable; Chromium retains the full-buffer Blob.
+    blob = !(/AppleWebKit\//.test(navigator.userAgent) &&
+      !/(?:Chrome|Chromium|Edg|OPR)\//.test(navigator.userAgent)),
     generation = 0,
     sleep,
     rate = 1,
@@ -69,9 +72,9 @@
           return r.arrayBuffer();
         })
         .then((b) => {
-          audio.src = URL.createObjectURL(
+          audio.src = blob ? URL.createObjectURL(
             new Blob([b], { type: "audio/mpeg" }),
-          );
+          ) : "/assets/signal-room.mp3";
         })
         .catch((e) => {
           prepared = null;
