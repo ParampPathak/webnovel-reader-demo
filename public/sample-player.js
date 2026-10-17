@@ -91,19 +91,31 @@
         clearTimeout(timer);
         audio.removeEventListener("playing", started);
         audio.removeEventListener("error", failed);
+        audio.removeEventListener("timeupdate", clocked);
         if (cancelStart === cancel) cancelStart = null;
         error ? reject(error) : resolve();
       };
       const started = () => { if (!audio.paused && !audio.ended) finish(); };
       const failed = () => finish(audio.error || Error("Recording playback failed."));
+      let lastClock = null;
+      const clocked = () => {
+        if (audio.paused || audio.ended || audio.seeking || audio.readyState < 2) {
+          lastClock = null;
+          return;
+        }
+        const now = audio.currentTime;
+        if (lastClock !== null && now > lastClock + 0.02) finish();
+        lastClock = now;
+      };
       const cancel = () => finish();
       const timer = setTimeout(() => finish(Error("Recording did not start.")), 15000);
       cancelStart = cancel;
       audio.addEventListener("playing", started);
       audio.addEventListener("error", failed);
-      // Some WebKit builds emit playing but leave play() pending indefinitely.
-      // Native playing is the readiness signal; still handle every rejection.
-      try { Promise.resolve(audio.play()).catch(finish); }
+      audio.addEventListener("timeupdate", clocked);
+      // WebKit may omit initial playing / promise completion after navigation.
+      // A genuinely advancing native clock also proves playback, not a JS event.
+      try { Promise.resolve(audio.play()).then(started, finish); }
       catch (error) { finish(error); }
     });
   }

@@ -228,6 +228,18 @@ async function swipe(p, name, direction) {
         await p.locator(".book-title").click();
         await ready(p);
         await expect(p.locator("#readingStatus")).toContainText("Page 1/");
+        if ([390, 1440].includes(width)) {
+          assert(await p.locator("audio").evaluate((a) => a.paused && !a.currentSrc));
+          await show(p);
+          await p.locator("#dockListen").click();
+          await p.waitForFunction(() => !document.querySelector("audio").paused && document.querySelector("audio").currentTime > 0.2);
+          await expect(p.locator("#readerMiniState")).toHaveText("");
+          await expect(p.frameLocator("#readingFrame").locator("[data-narration-mark]").first()).toBeVisible();
+          await p.locator("#dockListen").click();
+          await expect(p.locator("#readerMini")).toBeHidden();
+          assert(await p.locator("audio").evaluate((a) => a.paused));
+          pass(`${name} ${width}: fresh library-to-reader native startup clears loading, highlights excerpt and stops cleanly`);
+        }
         const first = await p.locator("#readingStatus").textContent();
         await swipe(p, name, 1);
         await expect(p.locator("#readingStatus")).not.toHaveText(first);
