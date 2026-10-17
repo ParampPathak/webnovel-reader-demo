@@ -86,6 +86,7 @@ for (const html of ["index.html", "reader.html"]) {
 for (const [source, target] of [
   ["LICENSE", "LICENSE.txt"],
   ["docs/licenses/fflate-MIT.txt", "fflate-LICENSE.txt"],
+  ["docs/licenses/kokoro-Apache-2.0.txt", "kokoro-Apache-2.0.txt"],
   ["docs/audio-provenance.md", "audio-provenance.txt"],
 ]) {
   const bytes = Buffer.from(

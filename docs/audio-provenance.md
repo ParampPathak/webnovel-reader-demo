@@ -1,6 +1,6 @@
 # Static neural narration
 
-The bundled recording reads only the original opening paragraph of **The Signal Room** in `public/data.js`. It is synthetic narration, not a human recording or Microsoft voice. No private library/cache material is used.
+The bundled recording reads only the original opening paragraph of **The Signal Room** in `public/sample.js`. It is synthetic narration, not a human recording or Microsoft voice. No private library/cache material is used.
 
 ## Voice and generation
 
@@ -14,7 +14,7 @@ The bundled recording reads only the original opening paragraph of **The Signal 
 
 ## Redistribution basis and attribution
 
-The upstream model card and ONNX conversion identify the model license as **Apache-2.0** and permit deployment of the model in real projects, including commercial applications. The generator is also Apache-2.0. The license notice is retained in [licenses/kokoro-Apache-2.0.txt](licenses/kokoro-Apache-2.0.txt). Only a generated recording of original text is distributed here, not the model weights, voice packs, generator, phonemizer, FFmpeg, or any private application code. The project's MIT notice does not relicense third-party software or models.
+The upstream model card and ONNX conversion identify the model license as **Apache-2.0** and permit deployment of the model in real projects, including commercial applications. The generator is also Apache-2.0. The license notice is retained in [licenses/kokoro-Apache-2.0.txt](licenses/kokoro-Apache-2.0.txt) and published as `/kokoro-Apache-2.0.txt`. Only a generated recording of original text is distributed, not the model weights, voice packs, generator, phonemizer or FFmpeg. The separately selected original MIT frontend is documented in `THIRD_PARTY.md`; no private runtime/data is bundled. The project's MIT notice does not relicense third-party software or models.
 
 Upstream credits include StyleTTS 2 and iSTFTNet. The [model card's training-data notice](https://huggingface.co/hexgrad/Kokoro-82M#creative-commons-attribution) credits Koniwa (CC BY 3.0) and SIWIS (CC BY 4.0); those datasets are not bundled here. Model licensing is the basis for this offline-generation route, not an assertion of ownership over another person's voice or a blanket legal warranty.
 
