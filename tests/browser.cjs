@@ -315,10 +315,26 @@ async function swipe(p, name, direction) {
           await p.locator("#audioBack").click();
           assert(await p.locator("audio").evaluate((a) => a.currentTime < 8));
           await p.locator("#audioPlay").click();
+          await expect(p.locator("#dockListen")).toHaveAttribute(
+            "data-playing",
+            "false",
+          );
+          assert(await p.locator("audio").evaluate((a) => a.paused));
           const paused = await p
             .locator("audio")
             .evaluate((a) => a.currentTime);
           await p.locator("#audioPlay").click();
+          await expect(p.locator("#dockListen")).toHaveAttribute(
+            "data-playing",
+            "true",
+          );
+          await p.waitForFunction(
+            (time) => {
+              const audio = document.querySelector("audio");
+              return !audio.paused && audio.currentTime > time;
+            },
+            paused,
+          );
           assert(
             await p
               .locator("audio")
